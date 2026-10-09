@@ -25,7 +25,13 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
 
   // Age / gender
   const gender = patient?.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'Male';
-  const age = 54; // Calculated or ~54 years per spec
+  let age: number | string = 52;
+  if (patient?.birthDate) {
+    const birthYear = new Date(patient.birthDate).getFullYear();
+    if (!isNaN(birthYear)) {
+      age = new Date().getFullYear() - birthYear;
+    }
+  }
 
   if (compact) {
     return (

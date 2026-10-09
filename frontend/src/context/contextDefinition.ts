@@ -6,6 +6,7 @@ import type {
   TimelineDateGroup,
   TimelineEventType,
 } from '@/lib/fhir/types';
+import type { PatientProfile } from '@/data/patients';
 
 export type DataSourceType = 'offline' | 'live';
 export type SourceStatusState = 'offline' | 'live' | 'fallback';
@@ -30,6 +31,9 @@ export interface PatientDataContextValue {
   toastMessage: string | null;
   clearToast: () => void;
   reload: () => Promise<void>;
+  currentPatientId: string;
+  setPatientId: (patientId: string) => void;
+  availablePatients: PatientProfile[];
 }
 
 export const PatientDataContext = createContext<PatientDataContextValue | undefined>(undefined);

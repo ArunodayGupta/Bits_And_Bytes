@@ -9,21 +9,56 @@ dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
-async function main() {
-  console.log('🌱 Starting HealthSafe database seed...');
+const FIXTURE_METADATA: Record<string, { id: string; name: string }> = {
+  'ramesh-kumar.bundle.json': {
+    id: 'sample-diabetic-patient',
+    name: 'Ramesh Kumar - Type 2 Diabetes & Hypertension (OPConsultRecord)',
+  },
+  'priya-sharma.bundle.json': {
+    id: 'sample-priya-sharma',
+    name: 'Priya Sharma - T2DM & Hypothyroidism (OPConsultRecord)',
+  },
+  'arun-patel.bundle.json': {
+    id: 'sample-arun-patel',
+    name: 'Arun Patel - CAD, Hypertension & Dyslipidemia (OPConsultRecord)',
+  },
+  'sunita-verma.bundle.json': {
+    id: 'sample-sunita-verma',
+    name: 'Sunita Verma - Bronchial Asthma & Allergic Rhinitis (OPConsultRecord)',
+  },
+  'vikram-malhotra.bundle.json': {
+    id: 'sample-vikram-malhotra',
+    name: 'Vikram Malhotra - T2DM, CKD Stage 2 & Diabetic Nephropathy (OPConsultRecord)',
+  },
+  'ananya-deshmukh.bundle.json': {
+    id: 'sample-ananya-deshmukh',
+    name: 'Ananya Deshmukh - T2DM, Hypertension & Knee Osteoarthritis (OPConsultRecord)',
+  },
+};
 
-  const candidatePaths = [
-    path.resolve(process.cwd(), 'fixtures/ramesh-kumar.bundle.json'),
-    path.resolve(process.cwd(), 'backend/fixtures/ramesh-kumar.bundle.json'),
-    path.resolve(process.cwd(), '../fixtures/ramesh-kumar.bundle.json'),
+async function main() {
+  console.log('🌱 Starting HealthSafe database multi-patient seed...');
+
+  const fixtureDirs = [
+    path.resolve(process.cwd(), 'fixtures'),
+    path.resolve(process.cwd(), 'backend/fixtures'),
+    path.resolve(process.cwd(), '../backend/fixtures'),
   ];
-  const fixturePath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
-  if (!fs.existsSync(fixturePath)) {
-    throw new Error(`Fixture not found. Checked: ${candidatePaths.join(', ')}`);
+
+  const foundDir = fixtureDirs.find((d) => fs.existsSync(d) && fs.readdirSync(d).some((f) => f.endsWith('.bundle.json')));
+  if (!foundDir) {
+    throw new Error(`Fixtures directory not found. Checked: ${fixtureDirs.join(', ')}`);
   }
 
-  const rawJson = fs.readFileSync(fixturePath, 'utf-8');
-  const bundle = JSON.parse(rawJson);
+  const fixtureFiles = fs
+    .readdirSync(foundDir)
+    .filter((file) => file.endsWith('.bundle.json'))
+    .sort();
+
+  console.log(`📁 Found ${fixtureFiles.length} fixture bundles in ${foundDir}:`);
+  for (const f of fixtureFiles) {
+    console.log(`   - ${f}`);
+  }
 
   let serviceClient;
   try {
@@ -35,38 +70,70 @@ async function main() {
     process.exit(1);
   }
 
-  // 1. Ingest bundle using identical data-layer ingest function (dogfooding)
-  console.log('📦 Ingesting FHIR R4 consultation bundle...');
-  const ingestResult = await ingestFhirBundle(serviceClient, bundle, {
-    isDemo: true,
-  });
+  const results = [];
 
-  console.log('✅ Ingestion successful:');
-  console.log(`   - Patient ID: ${ingestResult.patientId}`);
-  console.log(`   - ABHA ID:    ${ingestResult.abhaId}`);
-  console.log(`   - Rx-IDs:     ${ingestResult.rxIds.join(', ')}`);
-  console.log(`   - Resource Counts:`, ingestResult.counts);
+  for (const file of fixtureFiles) {
+    const filePath = path.join(foundDir, file);
+    console.log(`\n======================================================`);
+    console.log(`📦 Ingesting fixture: ${file}`);
+    console.log(`======================================================`);
 
-  if (ingestResult.warnings.length > 0) {
-    console.warn('⚠️ Warnings:', ingestResult.warnings);
+    const rawJson = fs.readFileSync(filePath, 'utf-8');
+    const bundle = JSON.parse(rawJson);
+
+    try {
+      const ingestResult = await ingestFhirBundle(serviceClient, bundle, {
+        isDemo: true,
+      });
+
+      console.log('✅ Ingestion successful:');
+      console.log(`   - Patient ID: ${ingestResult.patientId}`);
+      console.log(`   - ABHA ID:    ${ingestResult.abhaId}`);
+      console.log(`   - Rx-IDs:     ${ingestResult.rxIds.join(', ')}`);
+      console.log(`   - Resource Counts:`, ingestResult.counts);
+
+      if (ingestResult.warnings.length > 0) {
+        console.warn('⚠️ Warnings:', ingestResult.warnings);
+      }
+
+      // Upsert into offline_bundles
+      const meta = FIXTURE_METADATA[file] || {
+        id: `sample-${file.replace('.bundle.json', '')}`,
+        name: `Demo Patient - ${file}`,
+      };
+
+      console.log(`💾 Caching bundle into offline_bundles as "${meta.id}"...`);
+      const { error: offlineError } = await serviceClient
+        .from('offline_bundles')
+        .upsert({
+          id: meta.id,
+          name: meta.name,
+          bundle_json: bundle,
+        });
+
+      if (offlineError) {
+        console.error(`⚠️ Failed to cache offline bundle "${meta.id}":`, offlineError.message);
+      } else {
+        console.log(`✅ Cached in offline_bundles ("${meta.id}")`);
+      }
+
+      results.push({
+        file,
+        abha: ingestResult.abhaId,
+        rxIds: ingestResult.rxIds,
+        counts: ingestResult.counts,
+      });
+    } catch (ingestErr) {
+      console.error(`❌ Failed to ingest ${file}:`, ingestErr);
+    }
   }
 
-  // 2. Upsert into offline_bundles table for demo caching
-  console.log('💾 Upserting demo cache into offline_bundles...');
-  const { error: offlineError } = await serviceClient
-    .from('offline_bundles')
-    .upsert({
-      id: 'sample-diabetic-patient',
-      name: 'Ramesh Kumar - Type 2 Diabetes Consultation (OPConsultRecord)',
-      bundle_json: bundle,
-    });
-
-  if (offlineError) {
-    throw new Error(`Failed to cache offline bundle: ${offlineError.message}`);
+  console.log('\n======================================================');
+  console.log(`🎉 Database seeding finished! Processed ${results.length} patients.`);
+  console.log('======================================================');
+  for (const r of results) {
+    console.log(`🧑 ABHA: ${r.abha} | Rx-IDs: ${r.rxIds.join(', ')} | Resources: ${JSON.stringify(r.counts)}`);
   }
-
-  console.log('✅ Offline bundle cached under ID: "sample-diabetic-patient"');
-  console.log('🎉 Database seeding complete!');
 }
 
 main().catch((err) => {

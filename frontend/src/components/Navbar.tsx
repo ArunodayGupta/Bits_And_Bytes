@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Stethoscope, User, Menu, X, Leaf } from 'lucide-react';
+import { Stethoscope, User, Menu, X, Leaf, House } from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
 import { PatientCard } from './PatientCard';
 import { DataSourceSelect } from './DataSourceSelect';
+import { ThemeToggle } from './ThemeToggle';
 
 export const Navbar: React.FC = () => {
   const { patient, statusState, statusText } = usePatientData();
@@ -21,14 +22,14 @@ export const Navbar: React.FC = () => {
       : 'bg-stone-400 ring-stone-400/20';
 
   return (
-    <header className="sticky top-4 z-40 mx-auto w-full max-w-[1200px] px-4">
+    <header className="sticky top-4 z-40 mx-auto w-full max-w-[1640px] px-5 sm:px-8 lg:px-12">
       <nav
         aria-label="Main Navigation"
         className="glass-card flex items-center justify-between rounded-full border border-hairline px-4 py-2.5 shadow-elevated transition-all"
       >
         {/* Left: Patient Profile summary */}
         <div className="flex items-center">
-          {isLanding ? <Link to="/" className="flex items-center gap-2 font-serif text-xl text-ink"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper"><Leaf className="h-4 w-4" /></span>HealthSafe</Link> : <NavLink to="/patient" className="hover:opacity-90 transition-opacity"><PatientCard patient={patient} compact /></NavLink>}
+          {isLanding ? <Link to="/" className="flex items-center gap-2 font-serif text-xl text-ink"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper"><Leaf className="h-4 w-4" /></span>HealthSafe</Link> : <div className="flex items-center gap-2"><Link to="/" className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-card px-3 text-xs font-semibold text-ink transition-colors hover:bg-paper-2" aria-label="Return to home page"><House className="h-3.5 w-3.5 text-moss-600" /><span className="hidden xl:inline">Home</span></Link><NavLink to="/patient" className="hover:opacity-90 transition-opacity"><PatientCard patient={patient} compact /></NavLink></div>}
         </div>
 
         {/* Centre: Segmented View Switcher */}
@@ -75,6 +76,7 @@ export const Navbar: React.FC = () => {
 
         {/* Right: Data Source Selector & Actions */}
         <div className="hidden lg:flex items-center gap-3">
+          <ThemeToggle />
           {isLanding ? <Link to="/patient" className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-paper transition-colors hover:bg-moss-600">Try Demo</Link> : <DataSourceSelect />}
         </div>
 
@@ -98,6 +100,16 @@ export const Navbar: React.FC = () => {
             <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
               Select View
             </span>
+            {!isLanding && (
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mb-1 flex min-h-11 items-center justify-center gap-2 rounded-full border border-hairline bg-paper-2 text-xs font-semibold text-ink"
+              >
+                <House className="h-3.5 w-3.5 text-moss-600" />
+                Return to Home
+              </Link>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <NavLink
                 to="/patient"
@@ -140,6 +152,9 @@ export const Navbar: React.FC = () => {
                 <span className="text-xs text-ink-soft">{statusState}</span>
               </div>
               <DataSourceSelect />
+            </div>
+            <div className="mt-3 border-t border-hairline pt-3">
+              <ThemeToggle />
             </div>
           </div>
         </div>
