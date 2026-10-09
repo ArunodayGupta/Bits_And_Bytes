@@ -48,13 +48,13 @@ export const RxBadge: React.FC<RxBadgeProps> = ({ rxId }) => {
                 aria-label={`Copy prescription ID ${rxId}. Read this aloud to your doctor`}
                 className={`group flex items-center gap-1.5 rounded-full border border-dashed px-2.5 py-1 font-mono text-xs tracking-wider transition-all duration-200 ${
                   copied
-                    ? 'border-moss-500 bg-moss-600 text-paper shadow-sm'
+                    ? 'border-moss-500 bg-moss-600 text-white shadow-sm'
                     : 'border-hairline bg-paper-2 text-ink hover:border-moss-500 hover:bg-moss-100/40'
                 }`}
               >
                 {copied ? (
                   <>
-                    <Check className="h-3 w-3 text-paper" />
+                    <Check className="h-3 w-3 text-white" />
                     <span className="font-semibold">Copied</span>
                   </>
                 ) : (

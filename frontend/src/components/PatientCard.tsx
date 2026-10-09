@@ -36,7 +36,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
   if (compact) {
     return (
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 text-paper font-serif font-semibold shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 text-white font-serif font-semibold shadow-sm">
           {initials}
         </div>
         <div className="flex flex-col min-w-0">
@@ -63,7 +63,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
     <div className="rounded-20 border border-hairline bg-card p-5 shadow-soft">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 text-paper font-serif text-xl font-semibold shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 text-white font-serif text-xl font-semibold shadow-sm">
             {initials}
           </div>
           <div>

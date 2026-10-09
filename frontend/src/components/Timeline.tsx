@@ -136,7 +136,7 @@ export const Timeline: React.FC = () => {
                 onClick={() => setActiveFilter(opt.id)}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-moss-600 text-paper shadow-sm'
+                    ? 'bg-moss-600 text-white shadow-sm'
                     : 'bg-card text-ink border border-hairline hover:bg-paper-2 hover:border-moss-500/50'
                 }`}
               >

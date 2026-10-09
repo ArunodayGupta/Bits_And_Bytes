@@ -41,7 +41,34 @@ export const LandingPage = () => <div className="landing-page pb-16">
   <section id="how-it-works" className="section-reveal py-10 text-center"><h2 className="mx-auto max-w-4xl font-serif text-4xl leading-tight sm:text-5xl">Records are scattered. Care shouldn’t be. <em>Your history should travel with you.</em></h2><p className="mx-auto mt-5 max-w-2xl text-ink-soft">Paper files, repeated tests and disconnected clinics make continuity of care harder than it should be. This demo brings the record back to the person it belongs to.</p></section>
   <section className="section-reveal py-12"><div className="mb-7"><Eyebrow>How it works</Eyebrow></div><div className="grid gap-5 md:grid-cols-3">{[['01', 'Ingest', 'Bring in records from ABHA-linked sources — a live FHIR server or offline bundle today; paper scans coming next.'], ['02', 'Understand', 'See everything on one colour-coded chronological timeline with trends.'], ['03', 'Share', 'Read your Rx-ID aloud; a clinician types it and sees that prescription instantly.']].map(([number, title, text]) => <article key={number} className="rounded-28 border border-hairline bg-card p-6 shadow-soft"><p className="font-serif text-5xl text-moss-600/70">{number}</p><h3 className="mt-4 font-serif text-2xl">{title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{text}</p></article>)}</div></section>
   <section id="features" className="section-reveal py-12"><div className="mb-7"><Eyebrow>Built for continuity</Eyebrow><h2 className="mt-3 font-serif text-4xl">Every record, in its <em>right context.</em></h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{features.map(([Icon, title, copy, live]) => <article key={title} className="rounded-20 border border-hairline bg-card p-5 shadow-soft transition-transform hover:-translate-y-1"><div className="flex items-start justify-between"><span className="rounded-xl bg-moss-100 p-2.5 text-moss-600"><Icon className="h-5 w-5" /></span><span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${live ? 'border-moss-500/30 bg-moss-100 text-moss-600' : 'border-gold-400/60 text-gold-400'}`}>{live ? 'Live in demo' : 'Coming next'}</span></div><h3 className="mt-5 font-serif text-2xl">{title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{copy}</p></article>)}</div></section>
-  <section className="section-reveal my-10 overflow-hidden rounded-28 bg-[#172119] p-6 text-[#f1ede0] sm:p-10"><Eyebrow>One connected view</Eyebrow><h2 className="mt-4 font-serif text-4xl text-gold-400 sm:text-5xl">Turn records into <em>real answers.</em></h2><div className="mt-8 grid gap-4 md:grid-cols-3">{[['Timeline', 'A chronological clinical story'], ['Trend chart', 'HbA1c tracked over time'], ['Digital prescription', 'Speakable Rx-ID at point of care']].map(([title, copy]) => <div key={title} className="rounded-20 border border-white/15 bg-white/5 p-5"><p className="font-serif text-2xl text-gold-400">{title}</p><div className="my-5 h-1.5 rounded-full bg-moss-500/50" /><p className="text-sm text-[#aab5a6]">{copy}</p></div>)}</div><div className="mt-6 grid gap-3 sm:grid-cols-3">{['4 FHIR resource types parsed', '16-character speakable ID', '0 network calls in offline mode'].map(x => <div key={x} className="rounded-xl border border-white/15 p-3 text-center text-xs text-[#d6ddcf]">{x}</div>)}</div></section>
+  <section className="section-reveal my-10 overflow-hidden rounded-28 border border-hairline bg-card p-6 text-ink shadow-soft sm:p-10">
+    <Eyebrow>One connected view</Eyebrow>
+    <h2 className="mt-4 font-serif text-4xl text-ink sm:text-5xl">Turn records into <em>real answers.</em></h2>
+    <div className="mt-8 grid gap-4 md:grid-cols-3">
+      {[
+        ['Timeline', 'A chronological clinical story'],
+        ['Trend chart', 'HbA1c tracked over time'],
+        ['Digital prescription', 'Speakable Rx-ID at point of care']
+      ].map(([title, copy]) => (
+        <div key={title} className="rounded-20 border border-hairline bg-paper-2/60 p-5 transition-transform hover:-translate-y-1">
+          <p className="font-serif text-2xl text-ink">{title}</p>
+          <div className="my-4 h-1.5 w-12 rounded-full bg-moss-500/50" />
+          <p className="text-sm leading-relaxed text-ink-soft">{copy}</p>
+        </div>
+      ))}
+    </div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      {[
+        '4 FHIR resource types parsed',
+        '16-character speakable ID',
+        '0 network calls in offline mode'
+      ].map(x => (
+        <div key={x} className="rounded-xl border border-hairline bg-paper-2/40 p-3 text-center text-xs font-medium text-ink-soft">
+          {x}
+        </div>
+      ))}
+    </div>
+  </section>
   <section id="patients" className="section-reveal grid gap-4 py-12 md:grid-cols-2"><article className="rounded-28 border border-hairline bg-card p-7"><UserRound className="h-6 w-6 text-moss-600" /><h2 className="mt-5 font-serif text-3xl">For patients</h2><ul className="mt-4 space-y-2 text-sm text-ink-soft"><li>• See your records in one timeline</li><li>• Follow meaningful trends</li><li>• Share a prescription with a spoken ID</li></ul><div className="mt-6"><ButtonLink to="/patient">Open dashboard</ButtonLink></div></article><article id="doctors" className="rounded-28 border border-hairline bg-paper-2 p-7"><Stethoscope className="h-6 w-6 text-teal-700" /><h2 className="mt-5 font-serif text-3xl">For doctors</h2><ul className="mt-4 space-y-2 text-sm text-ink-soft"><li>• Look up an Rx-ID in seconds</li><li>• See context around the prescription</li><li>• Inspect the source FHIR record</li></ul><div className="mt-6"><ButtonLink to="/clinician" secondary>Try clinician lookup</ButtonLink></div></article></section>
   <aside className="rounded-20 border border-moss-500/25 bg-moss-100/45 px-5 py-4 text-center text-sm text-ink-soft"><ShieldCheck className="mr-2 inline h-4 w-4 text-moss-600" />Built on FHIR R4 and ABDM/NRCeS standards · Offline-ready · Your data stays in your browser in this demo.</aside>
   <section className="section-reveal py-20 text-center"><h2 className="font-serif text-5xl">See your history, <em>in one place.</em></h2><div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row"><ButtonLink to="/patient">Try Patient Dashboard</ButtonLink><ButtonLink to="/clinician" secondary>Try Clinician Lookup</ButtonLink></div></section>

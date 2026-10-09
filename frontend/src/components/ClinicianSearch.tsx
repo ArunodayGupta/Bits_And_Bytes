@@ -61,7 +61,7 @@ export const ClinicianSearch: React.FC = () => {
           <div className="absolute right-4 flex items-center gap-2">
             <button
               type="submit"
-              className="flex h-10 items-center gap-1.5 rounded-full bg-moss-600 px-4 text-xs font-semibold text-paper hover:bg-moss-500 transition-colors shadow-sm"
+              className="flex h-10 items-center gap-1.5 rounded-full bg-moss-600 px-4 text-xs font-semibold text-white hover:bg-moss-500 transition-colors shadow-sm"
             >
               <span>Search</span>
               <CornerDownLeft className="h-3.5 w-3.5" />
@@ -85,7 +85,7 @@ export const ClinicianSearch: React.FC = () => {
               onClick={() => handleSelectSample(item.rxId)}
               className="group flex items-center gap-1.5 rounded-full border border-hairline bg-paper-2 px-3 py-1 font-mono text-xs text-ink hover:border-moss-500 hover:bg-moss-100/50 transition-all shadow-2xs"
             >
-              <span className="font-semibold text-moss-700">{item.rxId}</span>
+              <span className="font-semibold text-moss-600">{item.rxId}</span>
               <span className="font-sans text-[11px] text-ink-soft group-hover:text-ink">
                 ({item.name.split(' ')[0]} · {item.condition})
               </span>

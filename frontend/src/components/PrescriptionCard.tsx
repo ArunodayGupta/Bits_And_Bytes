@@ -74,12 +74,15 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
 
         {/* Prescription content */}
         <div className="relative p-6 sm:p-8">
-          {/* Serif ℞ Watermark */}
-          <div className="pointer-events-none absolute right-6 top-8 font-serif text-8xl font-normal text-moss-600/10 select-none">
+          {/* Serif ℞ Watermark - positioned behind body content to prevent header date overlap */}
+          <div
+            className="pointer-events-none absolute right-6 top-24 sm:right-8 sm:top-28 font-serif text-8xl sm:text-9xl font-normal text-moss-600/[0.08] dark:text-moss-500/[0.08] select-none z-0"
+            aria-hidden="true"
+          >
             ℞
           </div>
 
-          <div className="flex flex-col gap-6">
+          <div className="relative z-10 flex flex-col gap-6">
             {/* Header row: Stamp badge & Date */}
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
               <div className="flex items-center gap-3">
@@ -92,7 +95,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
               </div>
 
               <div className="flex items-center gap-2 text-xs text-ink-soft font-mono">
-                <Calendar className="h-3.5 w-3.5 text-stone-500" />
+                <Calendar className="h-3.5 w-3.5 text-moss-600" />
                 <span>Date: {authoredDate}</span>
               </div>
             </div>
@@ -186,7 +189,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 font-serif text-lg text-paper">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 font-serif text-lg text-white">
               {patientName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'RK'}
             </div>
             <div>

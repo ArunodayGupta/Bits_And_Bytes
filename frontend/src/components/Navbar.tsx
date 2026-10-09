@@ -36,7 +36,7 @@ export const Navbar: React.FC = () => {
       >
         {/* Left: Patient Profile summary */}
         <div className="flex items-center">
-          {isLanding ? <Link to="/" className="flex items-center gap-2 font-serif text-xl text-ink"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper"><Leaf className="h-4 w-4" /></span>HealthSafe</Link> : <div className="flex items-center gap-2"><Link to="/" className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-card px-3 text-xs font-semibold text-ink transition-colors hover:bg-paper-2" aria-label="Return to home page"><House className="h-3.5 w-3.5 text-moss-600" /><span className="hidden xl:inline">Home</span></Link><NavLink to="/patient" className="hover:opacity-90 transition-opacity"><PatientCard patient={patient} compact /></NavLink></div>}
+          {isLanding ? <Link to="/" className="flex items-center gap-2 font-serif text-xl text-ink"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-white"><Leaf className="h-4 w-4" /></span>HealthSafe</Link> : <div className="flex items-center gap-2"><Link to="/" className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-card px-3 text-xs font-semibold text-ink transition-colors hover:bg-paper-2" aria-label="Return to home page"><House className="h-3.5 w-3.5 text-moss-600" /><span className="hidden xl:inline">Home</span></Link><NavLink to="/patient" className="hover:opacity-90 transition-opacity"><PatientCard patient={patient} compact /></NavLink></div>}
         </div>
 
         {/* Centre: Segmented View Switcher */}
@@ -124,7 +124,7 @@ export const Navbar: React.FC = () => {
                 className={({ isActive }) =>
                   `flex items-center justify-center gap-2 rounded-full py-2 text-xs font-medium border ${
                     isActive
-                      ? 'bg-moss-600 text-paper border-transparent'
+                      ? 'bg-moss-600 text-white border-transparent'
                       : 'border-hairline bg-paper-2 text-ink'
                   }`
                 }
@@ -138,7 +138,7 @@ export const Navbar: React.FC = () => {
                 className={({ isActive }) =>
                   `flex items-center justify-center gap-2 rounded-full py-2 text-xs font-medium border ${
                     isActive
-                      ? 'bg-moss-600 text-paper border-transparent'
+                      ? 'bg-moss-600 text-white border-transparent'
                       : 'border-hairline bg-paper-2 text-ink'
                   }`
                 }
