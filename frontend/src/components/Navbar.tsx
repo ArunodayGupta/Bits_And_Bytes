@@ -148,7 +148,7 @@ export const Navbar: React.FC = () => {
         <div className="hidden lg:flex items-center gap-3">
           <ThemeToggle />
 
-          {isAuthenticated ? (
+          {isAuthenticated && !isAuthPage ? (
             <div className="flex items-center gap-2.5">
               {role === 'patient' && abhaId && (
                 <span
@@ -213,7 +213,7 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer / Dropdown */}
       {mobileMenuOpen && (
         <div className="mt-2 flex flex-col gap-3 rounded-20 border border-hairline bg-card p-4 shadow-elevated lg:hidden animate-fade-up">
-          {isAuthenticated ? (
+          {isAuthenticated && !isAuthPage ? (
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
                 Active Role: {role?.toUpperCase()}

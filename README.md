@@ -2,9 +2,10 @@
 
 > A zero-trust, patient-owned longitudinal health record dashboard built on **HL7 FHIR R4** and India's **ABDM / NRCeS** standards, featuring deterministic speakable prescription tokens (**Rx-ID**), clinician point-of-care verification, Clinical Care-Gap Engine v2, Generic Medicine Savings Engine (PMBJP Jan Aushadhi), and in-memory Scan-to-FHIR lab digitization.
 
----
+## Prerequisites
 
-## 📁 Repository Structure
+- Python 3.10+
+- A Supabase project (hosted or local)
 
 ```
 BitsAndBytes/

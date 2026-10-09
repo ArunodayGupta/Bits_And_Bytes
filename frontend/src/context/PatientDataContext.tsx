@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useContext } from 'react';
 import type {
   FhirBundle,
   FhirPatient,
@@ -101,6 +101,31 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     void loadData('database');
   }, [loadData]);
 
+  // Auto-refresh when in database mode so timeline stays in sync with live DB updates
+  React.useEffect(() => {
+    if (source !== 'database' && source !== 'live') return;
+
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void loadData(source);
+      }
+    }, 20000);
+
+    const onFocus = () => {
+      void loadData(source);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+      }
+    };
+  }, [source, loadData]);
+
   const setSource = useCallback(
     (newSource: DataSourceType) => {
       setSourceState(newSource);
@@ -119,11 +144,13 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       const pResource = prepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient;
       setPatient(pResource || null);
       setSelectedResource(null);
-      if (source === 'offline') {
+      if (source === 'database' || source === 'live') {
+        void loadData(source, patientId);
+      } else {
         setStatusText(`Source: Offline (${profile.name})`);
       }
     },
-    [source]
+    [source, loadData]
   );
 
   const reload = useCallback(async () => {
@@ -228,3 +255,12 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     </PatientDataContext.Provider>
   );
 }
+
+export function usePatientData(): PatientDataContextValue {
+  const context = useContext(PatientDataContext);
+  if (!context) {
+    throw new Error('usePatientData must be used within a PatientDataProvider');
+  }
+  return context;
+}
+
