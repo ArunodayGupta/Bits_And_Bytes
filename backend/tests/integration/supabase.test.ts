@@ -54,7 +54,12 @@ describeIntegration('Supabase Data Layer Integration Tests', () => {
       schemaReady = false;
     }
 
-    const fixturePath = path.resolve(process.cwd(), 'fixtures/ramesh-kumar.bundle.json');
+    const candidatePaths = [
+      path.resolve(process.cwd(), 'fixtures/ramesh-kumar.bundle.json'),
+      path.resolve(process.cwd(), 'backend/fixtures/ramesh-kumar.bundle.json'),
+      path.resolve(process.cwd(), '../fixtures/ramesh-kumar.bundle.json'),
+    ];
+    const fixturePath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
     fixtureBundle = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
   });
 

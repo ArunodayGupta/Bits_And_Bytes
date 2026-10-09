@@ -4,15 +4,22 @@ import dotenv from 'dotenv';
 import { createServiceClient } from '../src/lib/db/client';
 import { ingestFhirBundle } from '../src/lib/db/ingest';
 
-// Load environment variables from .env
+// Load environment variables from .env in current or parent directory
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 async function main() {
   console.log('🌱 Starting HealthSafe database seed...');
 
-  const fixturePath = path.resolve(process.cwd(), 'fixtures/ramesh-kumar.bundle.json');
+  const candidatePaths = [
+    path.resolve(process.cwd(), 'fixtures/ramesh-kumar.bundle.json'),
+    path.resolve(process.cwd(), 'backend/fixtures/ramesh-kumar.bundle.json'),
+    path.resolve(process.cwd(), '../fixtures/ramesh-kumar.bundle.json'),
+  ];
+  const fixturePath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
   if (!fs.existsSync(fixturePath)) {
-    throw new Error(`Fixture not found at: ${fixturePath}`);
+    throw new Error(`Fixture not found. Checked: ${candidatePaths.join(', ')}`);
   }
 
   const rawJson = fs.readFileSync(fixturePath, 'utf-8');
