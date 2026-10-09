@@ -1,0 +1,306 @@
+[
+  {
+    "description": "Seeded patient Ramesh Kumar with diabetes and hypertension yields HBA1C_OVERDUE, UNCONTROLLED_BP, and BP_RISING_TREND",
+    "as_of": "2024-10-14T12:00:00+05:30",
+    "resources": [
+      {
+        "resource_type": "Condition",
+        "fhir_id": "cond-t2dm",
+        "event_date": "2021-03-15T10:00:00+05:30",
+        "summary_title": "Type 2 diabetes mellitus",
+        "raw_json": {
+          "resourceType": "Condition",
+          "id": "cond-t2dm",
+          "clinicalStatus": { "coding": [{ "code": "active" }] },
+          "code": {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "44054006", "display": "Type 2 diabetes mellitus" }]
+          }
+        }
+      },
+      {
+        "resource_type": "Condition",
+        "fhir_id": "cond-htn",
+        "event_date": "2022-08-20T11:30:00+05:30",
+        "summary_title": "Essential hypertension",
+        "raw_json": {
+          "resourceType": "Condition",
+          "id": "cond-htn",
+          "clinicalStatus": { "coding": [{ "code": "active" }] },
+          "code": {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "59621000", "display": "Essential hypertension" }]
+          }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-hba1c-overdue",
+        "event_date": "2024-04-10T08:00:00+05:30",
+        "summary_title": "HbA1c",
+        "summary_value": "8.1 %",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-hba1c-overdue",
+          "status": "final",
+          "code": {
+            "coding": [{ "system": "http://loinc.org", "code": "4548-4", "display": "Hemoglobin A1c" }]
+          },
+          "effectiveDateTime": "2024-04-10T08:00:00+05:30",
+          "valueQuantity": { "value": 8.1, "unit": "%", "system": "http://unitsofmeasure.org", "code": "%" }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-20240410",
+        "event_date": "2024-04-10T08:15:00+05:30",
+        "summary_title": "Blood Pressure Panel",
+        "summary_value": "134/86 mmHg",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-bp-20240410",
+          "status": "final",
+          "code": { "coding": [{ "system": "http://loinc.org", "code": "85354-9" }] },
+          "effectiveDateTime": "2024-04-10T08:15:00+05:30",
+          "component": [
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6" }] }, "valueQuantity": { "value": 134, "unit": "mm[Hg]" } },
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8462-4" }] }, "valueQuantity": { "value": 86, "unit": "mm[Hg]" } }
+          ]
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-20240715",
+        "event_date": "2024-07-15T09:00:00+05:30",
+        "summary_title": "Blood Pressure Panel",
+        "summary_value": "142/90 mmHg",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-bp-20240715",
+          "status": "final",
+          "code": { "coding": [{ "system": "http://loinc.org", "code": "85354-9" }] },
+          "effectiveDateTime": "2024-07-15T09:00:00+05:30",
+          "component": [
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6" }] }, "valueQuantity": { "value": 142, "unit": "mm[Hg]" } },
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8462-4" }] }, "valueQuantity": { "value": 90, "unit": "mm[Hg]" } }
+          ]
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-20241014",
+        "event_date": "2024-10-14T09:40:00+05:30",
+        "summary_title": "Blood Pressure Panel",
+        "summary_value": "148/92 mmHg",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-bp-20241014",
+          "status": "final",
+          "code": { "coding": [{ "system": "http://loinc.org", "code": "85354-9" }] },
+          "effectiveDateTime": "2024-10-14T09:40:00+05:30",
+          "component": [
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6" }] }, "valueQuantity": { "value": 148, "unit": "mm[Hg]" } },
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8462-4" }] }, "valueQuantity": { "value": 92, "unit": "mm[Hg]" } }
+          ]
+        }
+      }
+    ],
+    "expected_codes": ["HBA1C_OVERDUE", "UNCONTROLLED_BP", "BP_RISING_TREND"]
+  },
+  {
+    "description": "Hypertension with single elevated reading triggers BP_ELEVATED_SINGLE_READING",
+    "as_of": "2024-10-14T12:00:00+05:30",
+    "resources": [
+      {
+        "resource_type": "Condition",
+        "fhir_id": "cond-htn",
+        "event_date": "2024-01-01T00:00:00Z",
+        "raw_json": {
+          "resourceType": "Condition",
+          "clinicalStatus": { "coding": [{ "code": "active" }] },
+          "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "38341003", "display": "Hypertension" }] }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-single",
+        "event_date": "2024-10-14T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-bp-single",
+          "status": "final",
+          "effectiveDateTime": "2024-10-14T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6" }] }, "valueQuantity": { "value": 146 } },
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8462-4" }] }, "valueQuantity": { "value": 94 } }
+          ]
+        }
+      }
+    ],
+    "expected_codes": ["BP_ELEVATED_SINGLE_READING"]
+  },
+  {
+    "description": "Hypertension with single normal reading triggers NO care gaps",
+    "as_of": "2024-10-14T12:00:00+05:30",
+    "resources": [
+      {
+        "resource_type": "Condition",
+        "fhir_id": "cond-htn",
+        "event_date": "2024-01-01T00:00:00Z",
+        "raw_json": {
+          "resourceType": "Condition",
+          "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "59621000" }] }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-normal",
+        "event_date": "2024-10-14T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-bp-normal",
+          "status": "final",
+          "effectiveDateTime": "2024-10-14T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6" }] }, "valueQuantity": { "value": 120 } },
+            { "code": { "coding": [{ "system": "http://loinc.org", "code": "8462-4" }] }, "valueQuantity": { "value": 80 } }
+          ]
+        }
+      }
+    ],
+    "expected_codes": []
+  },
+  {
+    "description": "Rising BP trend across 3 readings without uncontrolled threshold triggers BP_RISING_TREND",
+    "as_of": "2024-10-14T12:00:00+05:30",
+    "resources": [
+      {
+        "resource_type": "Condition",
+        "fhir_id": "cond-htn",
+        "event_date": "2024-01-01T00:00:00Z",
+        "raw_json": {
+          "resourceType": "Condition",
+          "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "59621000" }] }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-1",
+        "event_date": "2024-02-01T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "status": "final",
+          "effectiveDateTime": "2024-02-01T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "code": "8480-6" }] }, "valueQuantity": { "value": 115 } },
+            { "code": { "coding": [{ "code": "8462-4" }] }, "valueQuantity": { "value": 74 } }
+          ]
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-2",
+        "event_date": "2024-05-01T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "status": "final",
+          "effectiveDateTime": "2024-05-01T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "code": "8480-6" }] }, "valueQuantity": { "value": 126 } },
+            { "code": { "coding": [{ "code": "8462-4" }] }, "valueQuantity": { "value": 80 } }
+          ]
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-3",
+        "event_date": "2024-09-01T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "status": "final",
+          "effectiveDateTime": "2024-09-01T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "code": "8480-6" }] }, "valueQuantity": { "value": 138 } },
+            { "code": { "coding": [{ "code": "8462-4" }] }, "valueQuantity": { "value": 84 } }
+          ]
+        }
+      }
+    ],
+    "expected_codes": ["BP_RISING_TREND"]
+  },
+  {
+    "description": "High blood pressure readings without documented hypertension condition trigger NO BP gaps",
+    "as_of": "2024-10-14T12:00:00+05:30",
+    "resources": [
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-1",
+        "event_date": "2024-08-01T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "status": "final",
+          "effectiveDateTime": "2024-08-01T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "code": "8480-6" }] }, "valueQuantity": { "value": 150 } },
+            { "code": { "coding": [{ "code": "8462-4" }] }, "valueQuantity": { "value": 96 } }
+          ]
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-bp-2",
+        "event_date": "2024-10-01T09:00:00Z",
+        "raw_json": {
+          "resourceType": "Observation",
+          "status": "final",
+          "effectiveDateTime": "2024-10-01T09:00:00Z",
+          "component": [
+            { "code": { "coding": [{ "code": "8480-6" }] }, "valueQuantity": { "value": 152 } },
+            { "code": { "coding": [{ "code": "8462-4" }] }, "valueQuantity": { "value": 98 } }
+          ]
+        }
+      }
+    ],
+    "expected_codes": []
+  },
+  {
+    "description": "Confirmed OCR-scanned recent HbA1c clears HBA1C_OVERDUE gap",
+    "as_of": "2024-10-14T12:00:00+05:30",
+    "resources": [
+      {
+        "resource_type": "Condition",
+        "fhir_id": "cond-t2dm",
+        "event_date": "2021-03-15T10:00:00+05:30",
+        "raw_json": {
+          "resourceType": "Condition",
+          "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "44054006" }] }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-hba1c-old",
+        "event_date": "2024-04-10T08:00:00+05:30",
+        "raw_json": {
+          "resourceType": "Observation",
+          "code": { "coding": [{ "system": "http://loinc.org", "code": "4548-4" }] },
+          "effectiveDateTime": "2024-04-10T08:00:00+05:30",
+          "valueQuantity": { "value": 8.1, "unit": "%" }
+        }
+      },
+      {
+        "resource_type": "Observation",
+        "fhir_id": "obs-scan-hba1c-recent",
+        "event_date": "2024-10-10T10:00:00+05:30",
+        "source": "ocr_scan",
+        "raw_json": {
+          "resourceType": "Observation",
+          "id": "obs-scan-hba1c-recent",
+          "status": "preliminary",
+          "meta": { "tag": [{ "system": "https://phr-demo.example.org/source", "code": "ocr-scan" }] },
+          "code": { "coding": [{ "system": "http://loinc.org", "code": "4548-4", "display": "HbA1c" }] },
+          "effectiveDateTime": "2024-10-10T10:00:00+05:30",
+          "valueQuantity": { "value": 7.2, "unit": "%", "system": "http://unitsofmeasure.org", "code": "%" }
+        }
+      }
+    ],
+    "expected_codes": []
+  }
+]

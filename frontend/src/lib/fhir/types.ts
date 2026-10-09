@@ -4,6 +4,7 @@ export interface FhirMeta {
   versionId?: string;
   lastUpdated?: string;
   profile?: string[];
+  tag?: FhirCoding[];
 }
 
 export interface FhirCoding {
@@ -197,6 +198,7 @@ export interface TimelineEvent {
   unit?: string;
   rxId?: string;
   speakableRxId?: string;
+  source?: 'ingested' | 'ocr_scan';
   resource: FhirResource;
 }
 

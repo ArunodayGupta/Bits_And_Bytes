@@ -46,16 +46,16 @@ export const DataSourceSelect: React.FC = () => {
             <SelectValue placeholder="Select Data Source" />
           </SelectTrigger>
           <SelectContent align="end">
-            <SelectItem value="offline">
+            <SelectItem value="database">
               <div className="flex flex-col text-left py-0.5">
-                <span className="font-medium text-xs">Offline NRCeS Bundle</span>
-                <span className="text-[10px] text-ink-soft">Synthetic verified dataset</span>
+                <span className="font-medium text-xs">Live Cloud Database</span>
+                <span className="text-[10px] text-ink-soft">Supabase FHIR store</span>
               </div>
             </SelectItem>
-            <SelectItem value="live">
+            <SelectItem value="offline">
               <div className="flex flex-col text-left py-0.5">
-                <span className="font-medium text-xs">Live HAPI FHIR</span>
-                <span className="text-[10px] text-ink-soft">hapi.fhir.org/baseR4 query</span>
+                <span className="font-medium text-xs">Offline Sandbox Bundle</span>
+                <span className="text-[10px] text-ink-soft">Synthetic verified dataset</span>
               </div>
             </SelectItem>
           </SelectContent>

@@ -1,0 +1,192 @@
+{
+  "provider": "mock",
+  "report_date": "2024-10-20",
+  "report_date_confidence": 98.0,
+  "items": [
+    {
+      "test_key": "hba1c",
+      "display": "Hemoglobin A1c/Hemoglobin.total in Blood",
+      "loinc": "4548-4",
+      "value": 7.2,
+      "unit": "%",
+      "reference_range": "< 5.7 %",
+      "confidence": 95.0,
+      "needs_review": false,
+      "issues": [],
+      "fhir_preview": {
+        "resourceType": "Observation",
+        "id": "obs-scan-f861360f08f904b2",
+        "status": "preliminary",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "4548-4",
+              "display": "Hemoglobin A1c/Hemoglobin.total in Blood"
+            }
+          ],
+          "text": "HBA1C"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-91-1234-5678-9012",
+          "display": "Patient"
+        },
+        "effectiveDateTime": "2024-10-20",
+        "valueQuantity": {
+          "value": 7.2,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        },
+        "meta": {
+          "tag": [
+            {
+              "system": "https://phr-demo.example.org/source",
+              "code": "ocr-scan"
+            }
+          ]
+        },
+        "note": [
+          {
+            "text": "Extracted from a patient-uploaded report by OCR and confirmed by the patient."
+          }
+        ]
+      }
+    },
+    {
+      "test_key": "fasting_glucose",
+      "display": "Fasting glucose [Mass/volume] in Blood",
+      "loinc": "1558-6",
+      "value": 118.0,
+      "unit": "mg/dL",
+      "reference_range": "70 - 99 mg/dL",
+      "confidence": 95.0,
+      "needs_review": false,
+      "issues": [],
+      "fhir_preview": {
+        "resourceType": "Observation",
+        "id": "obs-scan-7b4b0e429f3e277c",
+        "status": "preliminary",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "1558-6",
+              "display": "Fasting glucose [Mass/volume] in Blood"
+            }
+          ],
+          "text": "FASTING_GLUCOSE"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-91-1234-5678-9012",
+          "display": "Patient"
+        },
+        "effectiveDateTime": "2024-10-20",
+        "valueQuantity": {
+          "value": 118.0,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "meta": {
+          "tag": [
+            {
+              "system": "https://phr-demo.example.org/source",
+              "code": "ocr-scan"
+            }
+          ]
+        },
+        "note": [
+          {
+            "text": "Extracted from a patient-uploaded report by OCR and confirmed by the patient."
+          }
+        ]
+      }
+    },
+    {
+      "test_key": "tsh",
+      "display": "Thyrotropin [Units/volume] in Serum or Plasma",
+      "loinc": "3016-3",
+      "value": 2.9,
+      "unit": "uIU/mL",
+      "reference_range": "0.4 - 4.5 uIU/mL",
+      "confidence": 94.0,
+      "needs_review": false,
+      "issues": [],
+      "fhir_preview": {
+        "resourceType": "Observation",
+        "id": "obs-scan-067fc8403d2460ac",
+        "status": "preliminary",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "3016-3",
+              "display": "Thyrotropin [Units/volume] in Serum or Plasma"
+            }
+          ],
+          "text": "TSH"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-91-1234-5678-9012",
+          "display": "Patient"
+        },
+        "effectiveDateTime": "2024-10-20",
+        "valueQuantity": {
+          "value": 2.9,
+          "unit": "uIU/mL",
+          "system": "http://unitsofmeasure.org",
+          "code": "u[IU]/mL"
+        },
+        "meta": {
+          "tag": [
+            {
+              "system": "https://phr-demo.example.org/source",
+              "code": "ocr-scan"
+            }
+          ]
+        },
+        "note": [
+          {
+            "text": "Extracted from a patient-uploaded report by OCR and confirmed by the patient."
+          }
+        ]
+      }
+    }
+  ],
+  "unmapped_rows": [],
+  "warnings": []
+}

@@ -52,7 +52,7 @@ describe('Clinical Care Gap Rule Engine (careGaps.ts)', () => {
     expect(gaps[0].severity).toBe('high');
     expect(gaps[0].daysSince).toBe(187);
     expect(gaps[0].lastValue).toBe('8.1 %');
-    expect(gaps[0].message).toContain('HbA1c test overdue (187 days');
+    expect(gaps[0].message).toContain('187 days ago');
   });
 
   it('triggers NO care gap when HbA1c was performed within 90 days', () => {

@@ -15,6 +15,7 @@ import type {
   FhirResource,
 } from '@/lib/fhir/types';
 import { Badge } from '@/components/ui/badge';
+import { SavingsCard } from './SavingsCard';
 
 interface PrescriptionCardProps {
   medication: FhirMedicationRequest;
@@ -170,6 +171,9 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Jan Aushadhi Generic Savings Card */}
+      <SavingsCard rxId={rxId} defaultExpanded={false} />
 
       {/* Associated Context Cards: Patient Demographics & Encounter */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

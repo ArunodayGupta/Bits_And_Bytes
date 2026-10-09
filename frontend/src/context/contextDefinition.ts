@@ -8,7 +8,7 @@ import type {
 } from '@/lib/fhir/types';
 import type { PatientProfile } from '@/data/patients';
 
-export type DataSourceType = 'offline' | 'live';
+export type DataSourceType = 'database' | 'offline' | 'live';
 export type SourceStatusState = 'offline' | 'live' | 'fallback';
 
 export interface PatientDataContextValue {
@@ -31,6 +31,7 @@ export interface PatientDataContextValue {
   toastMessage: string | null;
   clearToast: () => void;
   reload: () => Promise<void>;
+  addObservationToBundle: (obs: FhirResource) => void;
   currentPatientId: string;
   setPatientId: (patientId: string) => void;
   availablePatients: PatientProfile[];

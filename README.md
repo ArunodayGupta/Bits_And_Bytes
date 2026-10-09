@@ -1,33 +1,39 @@
-# HealthSafe – Patient-Owned Medical Records (ABDM / NRCeS)
+# HealthSafe – Unified Health Wallet (Phase 1 & Phase 2)
 
-> A zero-trust, patient-owned longitudinal health record dashboard built on **FHIR R4** and India's **ABDM / NRCeS** standards, featuring deterministic speakable prescription tokens (**Rx-ID**), clinician point-of-care verification, and PostgreSQL / Supabase clinical data persistence.
+> A zero-trust, patient-owned longitudinal health record dashboard built on **HL7 FHIR R4** and India's **ABDM / NRCeS** standards, featuring deterministic speakable prescription tokens (**Rx-ID**), clinician point-of-care verification, Clinical Care-Gap Engine v2, Generic Medicine Savings Engine (PMBJP Jan Aushadhi), and in-memory Scan-to-FHIR lab digitization.
 
 ---
 
 ## 📁 Repository Structure
 
-The project is structured into clean **`frontend/`** and **`backend/`** workspaces, enabling independent development and immediate deployment to Vercel.
-
 ```
 BitsAndBytes/
-├── frontend/               # Standalone React 18 + Vite + Tailwind CSS frontend application
-│   ├── src/                # Patient dashboard, Clinician lookup, and Landing page
-│   ├── public/             # Static assets and offline consultation fixtures
-│   ├── package.json        # Frontend scripts and dependencies
-│   └── vite.config.ts      # Vite configuration
+├── app/                    # FastAPI Phase 2 application
+│   ├── data/               # PMBJP Jan Aushadhi generic catalog (`medicine_catalog.json`)
+│   ├── routers/            # demo, patients, prescriptions, scan endpoints
+│   ├── services/           # care_gaps, savings_service, ocr_service
+│   └── utils/              # lab_catalog, db connector with fallback
+│
+├── frontend/               # React 18 + Vite + Tailwind CSS frontend application
+│   ├── src/                # Patient dashboard, Clinician lookup, Mock login shell, Scan modal
+│   ├── public/             # Static assets, synthetic lab reports, and offline fixtures
+│   └── package.json        # Frontend scripts and dependencies
 │
 ├── backend/                # PostgreSQL & Supabase data layer and testing suite
-│   ├── supabase/           # SQL migrations (tables, RLS, SECURITY DEFINER RPCs)
+│   ├── supabase/           # SQL migrations (Phase 1 + Phase 2 idempotency)
 │   ├── src/lib/            # Ingestion pipeline, Rx-ID generator, care gap engine
 │   ├── scripts/            # Database seed script (`seed.ts`)
-│   ├── fixtures/           # Synthetic Ramesh Kumar consultation bundle
-│   ├── tests/              # Unit & live Supabase integration tests
-│   ├── docs/DATA_LAYER.md  # Comprehensive schema and data layer documentation
-│   └── package.json        # Backend scripts (`db:seed`, `test`, `typecheck`)
+│   ├── fixtures/           # Synthetic consultation bundles
+│   └── docs/DATA_LAYER.md  # Comprehensive schema documentation
 │
-├── package.json            # Monorepo root with unified workspaces and convenience scripts
-├── vercel.json             # Vercel deployment configuration
-└── .gitignore              # Multi-workspace security and credentials ignore rules
+├── docs/
+│   ├── DATA_LAYER.md       # Phase 1 data layer specifications
+│   └── PHASE2.md           # Phase 2 architecture, math, endpoints, and demo script
+│
+├── fixtures/               # Sample synthetic lab report PNG
+├── scripts/                # Utility scripts: make_sample_report, export_demo_assets, reset_demo
+├── shared/test-vectors/    # Shared parity test vectors for care-gap rules (Python & TypeScript)
+└── tests/                  # Pytest test suite for Phase 2 services and endpoints
 ```
 
 ---
@@ -36,63 +42,62 @@ BitsAndBytes/
 
 ### 1. Install Dependencies
 ```bash
+# Node dependencies (frontend & backend workspaces)
 npm install
+
+# Python backend dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
-### 2. Run the Frontend (Vite Dev Server)
+### 2. Run the FastAPI Backend
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+API Documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 3. Run the Frontend (Vite Dev Server)
 ```bash
 npm run dev
 # or: npm --prefix frontend run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser to experience the landing page, patient timeline, and clinician lookup.
+Open [http://localhost:5173](http://localhost:5173) in your browser to experience the Mock Login shell, Patient Longitudinal Timeline, and Clinician Point-of-Care Search.
 
-### 3. Run All Tests
+---
+
+## 🧪 Testing Suites
+
+### Python Backend Test Suite (pytest)
 ```bash
-npm test
+python -m pytest tests
 ```
-Executes both test suites:
-- **Frontend** (`frontend/src/test/`): Timeline date grouping, search normalisation, offline bundle fallback.
-- **Backend** (`backend/tests/`): FHIR R4 parsing, blood pressure combining, clinical care-gap evaluation, speakable Rx-ID generation, and live Supabase RLS verification.
+Runs 26 automated unit and endpoint tests covering:
+- Care-gap engine v2: BP extraction, uncontrolled BP, elevated single reading, rising systolic trend, and HbA1c clearance.
+- Generic savings engine: Exact drug matching, alias resolution, combination product rejection, and Decimal strip calculations.
+- Scan-to-FHIR: Mock OCR provider, day-first date parsing, plausibility checks, and server-side FHIR Observation reconstruction.
+- Secret prevention: Automated scanning ensuring no real AWS or Supabase credentials exist in configuration templates.
+
+### Frontend Test Suite (vitest)
+```bash
+npm --prefix frontend test
+```
+Runs 41 automated tests in happy-dom covering:
+- Mock login shell: ABHA auto-formatting, demo chips, simulated OTP, AuthContext sessionStorage persistence.
+- Scan dialog: Sample report loading, review checklist, needs-review acknowledgment, and care-gap clearance.
+- Generic savings card: Matched/unmatched drugs, caution callouts (Levothyroxine), and illustrative badges.
+- TypeScript care gap engine parity against `shared/test-vectors/care-gaps.json`.
+
+### Secret Scanner
+```bash
+npm run check:secrets
+```
+Verifies that `.env.example` templates and built frontend bundles in `dist/` contain no private keys, AWS access keys, or service-role tokens.
 
 ---
 
-## 🗄️ Backend & Supabase Setup
+## 🗄️ Database & Offline Resilience
 
-The backend data layer is fully documented in [backend/docs/DATA_LAYER.md](file:///c:/Users/piyus/OneDrive/Desktop/BitsAndBytes/backend/docs/DATA_LAYER.md).
+- **SQL Migrations**: `supabase/phase2.sql` contains idempotent DDL adding the `source` column to `fhir_resources` and updating `access_logs`.
+- **Offline First**: Unified Health Wallet is designed for zero-downtime resilience. When the backend or database is unreachable, the frontend seamlessly functions using the bundled synthetic offline dataset and pre-computed demo assets.
 
-### Applying Migrations & Seeding
-1. **Apply Migrations**: Copy and run the migrations in your Supabase SQL Editor:
-   - `backend/supabase/migrations/0001_init.sql` (Tables, indexes, triggers)
-   - `backend/supabase/migrations/0002_rls_and_rpc.sql` (RLS policies, SECURITY DEFINER RPCs)
-2. **Seed Data**:
-   ```bash
-   npm run db:seed
-   ```
-   Ingests 6 comprehensive synthetic consultation bundles into Supabase and primes `offline_bundles`:
-   - **Ramesh Kumar** (`91-1234-5678-9012`): T2DM + Essential HTN, Apollo Hospitals, Dr. Rajesh Rao, Metformin + Telmisartan (`APL-RR-1410-RAME`), HbA1c 8.4% (Moderate Care Gap)
-   - **Priya Sharma** (`91-2345-6789-0123`): T2DM + Hypothyroidism, Fortis Healthcare, Dr. Sunita Sharma, Levothyroxine + Metformin (`FRT-SS-1809-PRIY`), HbA1c 6.4% (Controlled)
-   - **Arun Patel** (`91-3456-7890-1234`): CAD + Dyslipidemia + HTN, Manipal Hospital, Dr. Amit Sen, Atorvastatin + Amlodipine + Aspirin (`MNP-AS-0511-ARUN`), Total Cholesterol 242 mg/dL
-   - **Sunita Verma** (`91-4567-8901-2345`): Bronchial Asthma + Allergic Rhinitis, MedCare Clinic, Dr. Priya Nair, Budesonide/Formoterol + Montelukast (`MDC-PN-1208-SUNI`), Peak flow 340 L/min
-   - **Vikram Malhotra** (`91-5678-9012-3456`): T2DM + CKD Stage 2 + Nephropathy, AIIMS, Dr. Rajesh Rao, Empagliflozin + Linagliptin (`AMS-RR-2207-VIKR`), No HbA1c test (High Care Gap)
-   - **Ananya Deshmukh** (`91-6789-0123-4567`): T2DM + HTN + Knee Osteoarthritis, Apollo Hospitals, Dr. Rajesh Rao, Glimepiride/Metformin + Paracetamol (`APL-RR-1410-ANAN`), HbA1c 9.2% (Severe Care Gap)
-3. **Run Backend Integration Tests**:
-   ```bash
-   npm run test:backend
-   ```
-
----
-
-## 🚀 Deployment to Vercel
-
-This repository is pre-configured for instant zero-configuration deployment to **Vercel** via the root [vercel.json](file:///c:/Users/piyus/OneDrive/Desktop/BitsAndBytes/vercel.json):
-
-1. **Import the repository** into Vercel.
-2. The root `vercel.json` automatically configures:
-   - **Framework**: Vite
-   - **Install Command**: `npm --prefix frontend install`
-   - **Build Command**: `npm --prefix frontend run build`
-   - **Output Directory**: `frontend/dist`
-3. Add the public Supabase environment variables in the Vercel Dashboard:
-   - `VITE_SUPABASE_URL`: `https://<your-project-ref>.supabase.co`
-   - `VITE_SUPABASE_ANON_KEY`: `eyJ...`
-4. Click **Deploy**!
+See [docs/PHASE2.md](file:///c:/Users/piyus/OneDrive/Desktop/BitsAndBytes/docs/PHASE2.md) for full architectural assumptions, privacy safeguards, and a 90-second judge demo script.

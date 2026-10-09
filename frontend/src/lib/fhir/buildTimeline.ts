@@ -140,6 +140,9 @@ export function parseObservationEvent(obs: FhirObservation): TimelineEvent {
     subtitle = obs.valueString;
   }
 
+  const isOcrScan = (obs as any).source === 'ocr_scan' || 
+    ((obs.meta as any)?.tag as Array<{ code?: string }> | undefined)?.some((t) => t.code === 'ocr-scan');
+
   return {
     id: obs.id || `obs-${Math.random()}`,
     type: 'lab',
@@ -150,6 +153,7 @@ export function parseObservationEvent(obs: FhirObservation): TimelineEvent {
     numericValue,
     unit,
     badge: loincCode ? `LOINC: ${loincCode}` : undefined,
+    source: isOcrScan ? 'ocr_scan' : 'ingested',
     resource: obs,
   };
 }

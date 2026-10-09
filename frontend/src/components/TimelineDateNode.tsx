@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2 } from 'lucide-react';
 import type { TimelineDateGroup, TimelineEvent } from '@/lib/fhir/types';
 import { EventCard } from './EventCard';
+import { SavingsCard } from './SavingsCard';
 
 interface TimelineDateNodeProps {
   group: TimelineDateGroup;
@@ -17,6 +18,9 @@ export const TimelineDateNode: React.FC<TimelineDateNodeProps> = ({
   const hasYear = dateParts.length === 3;
   const dayMonth = hasYear ? `${dateParts[0]} ${dateParts[1]}` : group.displayDate;
   const year = hasYear ? dateParts[2] : '';
+
+  const medicationEvents = group.events.filter((e) => e.type === 'medication');
+  const rxId = medicationEvents[0]?.rxId;
 
   return (
     <div className="relative mb-12 last:mb-0">
@@ -52,6 +56,7 @@ export const TimelineDateNode: React.FC<TimelineDateNodeProps> = ({
 
       {/* Events inside this date node */}
       <div className="grid grid-cols-1 gap-4 pl-3 sm:pl-8">
+        {rxId && <SavingsCard rxId={rxId} defaultExpanded={false} />}
         {group.events.map((event) => (
           <EventCard key={event.id} event={event} onInspect={onInspect} />
         ))}

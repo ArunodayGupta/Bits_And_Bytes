@@ -4,6 +4,7 @@ export interface FhirMeta {
   versionId?: string;
   lastUpdated?: string;
   profile?: string[];
+  tag?: FhirCoding[];
 }
 
 export interface FhirCoding {

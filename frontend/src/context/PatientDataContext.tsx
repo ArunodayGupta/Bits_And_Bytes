@@ -8,7 +8,7 @@ import type {
 import { fetchPatientData } from '@/lib/fhir/fetchPatientData';
 import { buildTimeline } from '@/lib/fhir/buildTimeline';
 import { injectRxIdsIntoBundle } from '@/lib/rxId';
-import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE, type PatientProfile } from '@/data/patients';
+import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE } from '@/data/patients';
 import {
   PatientDataContext,
   type DataSourceType,
@@ -27,10 +27,10 @@ const initialPatient =
 
 export function PatientDataProvider({ children }: { children: React.ReactNode }) {
   const [currentPatientId, setCurrentPatientId] = useState<string>(DEFAULT_PATIENT_PROFILE.id);
-  const [source, setSourceState] = useState<DataSourceType>('offline');
+  const [source, setSourceState] = useState<DataSourceType>('database');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [statusState, setStatusState] = useState<SourceStatusState>('offline');
-  const [statusText, setStatusText] = useState<string>(`Source: Offline (${DEFAULT_PATIENT_PROFILE.name})`);
+  const [statusState, setStatusState] = useState<SourceStatusState>('live');
+  const [statusText, setStatusText] = useState<string>(`Source: Live Database (${DEFAULT_PATIENT_PROFILE.name})`);
   const [rawBundle, setRawBundle] = useState<FhirBundle | null>(initialRaw);
   const [bundle, setBundle] = useState<FhirBundle | null>(initialPrepared.bundle);
   const [patient, setPatient] = useState<FhirPatient | null>(initialPatient);
@@ -54,7 +54,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       } else {
         fetchedBundle = await fetchPatientData(requestedSource, () => {
           didFallback = true;
-        });
+        }, profile.abha);
       }
 
       // Inject deterministic speakable Rx-IDs into all MedicationRequests
@@ -73,14 +73,14 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
       const totalResources = preparedBundle.entry?.length ?? 0;
 
-      if (requestedSource === 'live') {
+      if (requestedSource === 'database' || requestedSource === 'live') {
         if (didFallback) {
           setStatusState('fallback');
-          setStatusText('Live failed, using offline');
-          setToastMessage('Live server unavailable, showing offline bundle.');
+          setStatusText('DB unavailable, showing cached bundle');
+          setToastMessage('Live database unreachable, showing local bundle.');
         } else {
           setStatusState('live');
-          setStatusText(`Source: Live HAPI (${totalResources} resources)`);
+          setStatusText(`Source: Live Database (${totalResources} records)`);
         }
       } else {
         setStatusState('offline');
@@ -89,12 +89,17 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     } catch (err) {
       console.error('Critical loading error:', err);
       setStatusState('fallback');
-      setStatusText('Live failed, using offline');
-      setToastMessage('Live server unavailable, showing offline bundle.');
+      setStatusText('DB unavailable, showing cached bundle');
+      setToastMessage('Live database unreachable, showing local bundle.');
     } finally {
       setIsLoading(false);
     }
   }, [currentPatientId]);
+
+  // Load from database on initial mount
+  React.useEffect(() => {
+    void loadData('database');
+  }, [loadData]);
 
   const setSource = useCallback(
     (newSource: DataSourceType) => {
@@ -172,6 +177,25 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       .filter((group) => group.events.length > 0);
   }, [timelineGroups, activeFilter, searchQuery]);
 
+  const addObservationToBundle = useCallback((obs: FhirResource) => {
+    setBundle((prevBundle) => {
+      if (!prevBundle) return prevBundle;
+      const currentEntries = prevBundle.entry || [];
+      const exists = currentEntries.some((e) => e.resource.id === obs.id);
+      if (exists) return prevBundle;
+
+      const newEntry = {
+        fullUrl: `urn:uuid:${obs.id}`,
+        resource: obs,
+      };
+      return {
+        ...prevBundle,
+        entry: [newEntry, ...currentEntries],
+      };
+    });
+    setToastMessage('Lab observation added to timeline.');
+  }, []);
+
   const value: PatientDataContextValue = {
     source,
     setSource,
@@ -192,6 +216,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     toastMessage,
     clearToast,
     reload,
+    addObservationToBundle,
     currentPatientId,
     setPatientId,
     availablePatients: PATIENT_PROFILES,

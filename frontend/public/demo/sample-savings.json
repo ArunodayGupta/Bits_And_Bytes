@@ -1,0 +1,36 @@
+{
+  "rx_id": "APL-RR-1410-RAME",
+  "medications": [
+    {
+      "prescribed_drug": "Telmisartan 40 mg oral tablet",
+      "salt": "Telmisartan",
+      "generic_alternative": "Jan Aushadhi Telmisartan 40mg",
+      "monthly_savings_rupees": "384.00",
+      "savings_percentage": "87.3",
+      "monthly_cost_brand": "440.00",
+      "monthly_cost_generic": "56.00",
+      "doses_per_day": 1,
+      "assumed_frequency": false,
+      "caution": null,
+      "price_as_of": "2024-10-01",
+      "illustrative": true
+    },
+    {
+      "prescribed_drug": "Metformin 500 mg oral tablet",
+      "salt": "Metformin",
+      "generic_alternative": "Jan Aushadhi Metformin 500mg",
+      "monthly_savings_rupees": "165.00",
+      "savings_percentage": "78.6",
+      "monthly_cost_brand": "210.00",
+      "monthly_cost_generic": "45.00",
+      "doses_per_day": 2,
+      "assumed_frequency": false,
+      "caution": null,
+      "price_as_of": "2024-10-01",
+      "illustrative": true
+    }
+  ],
+  "unmatched": [],
+  "total_monthly_savings": "549.00",
+  "disclaimer": "Illustrative prices. Do not change medicines without asking your doctor or pharmacist."
+}

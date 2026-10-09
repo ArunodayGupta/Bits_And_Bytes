@@ -36,6 +36,7 @@ export interface ParsedResourceRow {
   speakable_rx_id?: string | null;
   summary_title: string;
   summary_value: string | null;
+  source?: 'ingested' | 'ocr_scan';
   raw_json: unknown;
 }
 
@@ -365,6 +366,12 @@ export function parseFhirBundle(rawBundle: unknown, opts: IngestOptions = {}): P
         const summaryValue = formatObservationSummaryValue(obs);
         const eventDate = obs.effectiveDateTime || (obs as any).effectivePeriod?.start || obs.issued || null;
         const encId = resolveEncounterId((obs as any).encounter?.reference);
+        const obsSource = (obs as any).source || (
+          Array.isArray((obs.meta as any)?.tag) &&
+          (obs.meta as any).tag.some((t: any) => t.code === 'ocr-scan')
+            ? 'ocr_scan'
+            : 'ingested'
+        );
 
         resources.push({
           resource_type: 'Observation',
@@ -373,6 +380,7 @@ export function parseFhirBundle(rawBundle: unknown, opts: IngestOptions = {}): P
           encounter_fhir_id: encId,
           summary_title: summaryTitle,
           summary_value: summaryValue,
+          source: obsSource,
           raw_json: JSON.parse(JSON.stringify(obs)),
         });
         break;

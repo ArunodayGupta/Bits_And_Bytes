@@ -14,6 +14,7 @@ export interface TimelineItem {
   title: string;
   value: string | null;
   rxId: string | null;
+  source?: string | null;
   raw: unknown;
 }
 
@@ -74,6 +75,7 @@ export async function getPatientTimeline(
     title: String(item.summary_title),
     value: item.summary_value ? String(item.summary_value) : null,
     rxId: item.speakable_rx_id ? String(item.speakable_rx_id) : null,
+    source: item.source ? String(item.source) : 'ingested',
     raw: item.raw_json,
   }));
 

@@ -72,7 +72,7 @@ describeIntegration('Supabase Data Layer Integration Tests', () => {
     expect(result.counts.Patient).toBe(1);
     expect(result.counts.Encounter).toBe(1);
     expect(result.counts.Condition).toBe(2);
-    expect(result.counts.Observation).toBe(2);
+    expect(result.counts.Observation).toBe(4);
     expect(result.counts.MedicationRequest).toBe(2);
     expect(result.rxIds).toContain('APL-RR-1410-RAME');
   });

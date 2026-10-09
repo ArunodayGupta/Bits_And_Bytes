@@ -1,13 +1,38 @@
-import { useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePatientData } from '@/context/usePatientData';
+import { useAuth } from '@/context/AuthContext';
 import { Timeline } from '@/components/Timeline';
 import { ResourceSheet } from '@/components/ResourceSheet';
 import { PatientSwitcher } from '@/components/PatientSwitcher';
 import { CareGapBanner } from '@/components/CareGapBanner';
-import { Calendar, Activity, Pill, Shield } from 'lucide-react';
+import { ScanDialog } from '@/components/ScanDialog';
+import { Calendar, Activity, Pill, Shield, Camera } from 'lucide-react';
 
 export const PatientView: React.FC = () => {
-  const { bundle, patient, selectedResource, setSelectedResource } = usePatientData();
+  const { abhaId } = useAuth();
+  const {
+    bundle,
+    patient,
+    selectedResource,
+    setSelectedResource,
+    setPatientId,
+    availablePatients,
+  } = usePatientData();
+
+  const [isScanOpen, setIsScanOpen] = useState(false);
+
+  // Enforce session ABHA in patient view (no free-text switching)
+  useEffect(() => {
+    if (abhaId && availablePatients.length > 0) {
+      const cleanSessionAbha = abhaId.replace(/\D/g, '');
+      const matched = availablePatients.find(
+        (p) => p.abha.replace(/\D/g, '') === cleanSessionAbha
+      );
+      if (matched) {
+        setPatientId(matched.id);
+      }
+    }
+  }, [abhaId, availablePatients, setPatientId]);
 
   // Dynamic statistics from bundle
   const stats = useMemo(() => {
@@ -31,8 +56,8 @@ export const PatientView: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 pb-16 animate-fade-up">
-      {/* Patient Switcher for Testing Multiple Patients & Scenarios */}
-      <PatientSwitcher />
+      {/* Show Patient Switcher only if no session ABHA locked */}
+      {!abhaId && <PatientSwitcher />}
 
       {/* Verdant Clinical Hero Header Band */}
       <section className="patient-hero relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 p-8 sm:p-12 shadow-soft">
@@ -41,11 +66,22 @@ export const PatientView: React.FC = () => {
         <div className="pointer-events-none absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-teal-700/10 blur-3xl" />
 
         <div className="relative z-10 max-w-3xl">
-          <div className="mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <span className="eyebrow-pill">
               <span className="eyebrow-dot" />
               Longitudinal Health Record · {patientName}
             </span>
+
+            {/* Scan Lab Report Button */}
+            <button
+              type="button"
+              onClick={() => setIsScanOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-moss-600 px-4 py-2 text-xs font-semibold text-paper hover:bg-moss-500 transition-all shadow-sm"
+              aria-label="Scan and upload a lab report"
+            >
+              <Camera className="h-4 w-4" />
+              <span>Scan lab report</span>
+            </button>
           </div>
 
           <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal text-ink leading-tight mb-4">
@@ -120,6 +156,12 @@ export const PatientView: React.FC = () => {
         onOpenChange={(open) => {
           if (!open) setSelectedResource(null);
         }}
+      />
+
+      {/* Scan to FHIR Dialog */}
+      <ScanDialog
+        open={isScanOpen}
+        onOpenChange={setIsScanOpen}
       />
     </div>
   );

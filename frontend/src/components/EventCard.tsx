@@ -77,6 +77,16 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onInspect }) => {
               {typeConfig.label}
             </span>
 
+            {event.source === 'ocr_scan' && (
+              <Badge
+                variant="outline"
+                title="Patient-uploaded, not lab-verified"
+                className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-medium px-2 py-0 cursor-help"
+              >
+                Scanned
+              </Badge>
+            )}
+
             {event.badge && !event.rxId && (
               <Badge
                 variant="outline"

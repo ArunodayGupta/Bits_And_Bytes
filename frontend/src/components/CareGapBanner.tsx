@@ -1,201 +1,286 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  AlertTriangle,
+  Clock,
+  HeartPulse,
+  Activity,
+  X,
+  Info,
+  Calendar,
+  FileCheck2,
+} from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
-import { AlertTriangle, CheckCircle, Clock, HeartPulse, Activity } from 'lucide-react';
-import type { FhirObservation, FhirCondition } from '@/lib/fhir/types';
+import { useAuth } from '@/context/AuthContext';
+import {
+  evaluateCareGaps,
+  type CareGap,
+  type ClinicalResourceInput,
+} from '@/lib/careGaps';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+const RULE_DESCRIPTIONS: Record<string, string> = {
+  HBA1C_OVERDUE:
+    'Demo rule: Triggers when HbA1c laboratory monitoring is older than 180 days for a diagnosed Type 2 diabetes patient.',
+  UNCONTROLLED_BP:
+    'Demo rule: Triggers when the 2 most recent blood pressure readings are both at or above 140/90 mmHg for a patient with hypertension.',
+  BP_ELEVATED_SINGLE_READING:
+    'Demo rule: Triggers when only one blood pressure reading is on record and it is at or above 140/90 mmHg.',
+  BP_RISING_TREND:
+    'Demo rule: Triggers when systolic blood pressure is strictly increasing across the latest 3 readings with total rise >= 10 mmHg.',
+};
 
 export const CareGapBanner: React.FC = () => {
-  const { bundle } = usePatientData();
+  const { bundle, source, patient, currentPatientId } = usePatientData();
+  const { abhaId: authAbhaId } = useAuth();
 
-  const gapAnalysis = useMemo(() => {
-    if (!bundle?.entry) return null;
-
-    const conditions: FhirCondition[] = [];
-    const observations: FhirObservation[] = [];
-
-    for (const e of bundle.entry) {
-      if (e.resource.resourceType === 'Condition') {
-        conditions.push(e.resource as FhirCondition);
-      } else if (e.resource.resourceType === 'Observation') {
-        observations.push(e.resource as FhirObservation);
-      }
+  // Session-only dismiss state
+  const [dismissedCodes, setDismissedCodes] = useState<Set<string>>(() => {
+    try {
+      const stored = sessionStorage.getItem('dismissed_care_gaps');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
     }
+  });
 
-    const hasT2DM = conditions.some((c) => {
-      const codings = c.code?.coding || [];
-      return (
-        codings.some((cod) => cod.code === '44054006') ||
-        c.code?.text?.toLowerCase().includes('diabetes')
-      );
-    });
+  const [backendGaps, setBackendGaps] = useState<CareGap[] | null>(null);
 
-    const hasCAD = conditions.some((c) => {
-      const codings = c.code?.coding || [];
-      return (
-        codings.some((cod) => cod.code === '53741008') ||
-        c.code?.text?.toLowerCase().includes('coronary')
-      );
-    });
+  const activeAbha =
+    authAbhaId ||
+    patient?.identifier?.find((i) => i.system?.includes('healthid'))?.value ||
+    (currentPatientId === 'ramesh-kumar' ? '91-1234-5678-9012' : currentPatientId);
 
-    const hasAsthma = conditions.some((c) => {
-      const codings = c.code?.coding || [];
-      return (
-        codings.some((cod) => cod.code === '195967001') ||
-        c.code?.text?.toLowerCase().includes('asthma')
-      );
-    });
+  // If Backend source is active, fetch from backend and DO NOT recompute
+  useEffect(() => {
+    let isCancelled = false;
 
-    // 1. If patient has Diabetes
-    if (hasT2DM) {
-      const hba1cObs = observations
-        .filter((o) => {
-          const codings = o.code?.coding || [];
-          return (
-            codings.some((c) => c.code === '4548-4') ||
-            o.code?.text?.toLowerCase().includes('hba1c') ||
-            o.code?.text?.toLowerCase().includes('hemoglobin a1c')
-          );
-        })
-        .sort((a, b) => {
-          const dateA = a.effectiveDateTime || '';
-          const dateB = b.effectiveDateTime || '';
-          return dateB.localeCompare(dateA);
-        });
-
-      if (hba1cObs.length === 0) {
-        return {
-          type: 'missing',
-          title: 'High Care Gap: Overdue HbA1c Lab Test',
-          message:
-            'Patient has diagnosed Type 2 Diabetes Mellitus but no HbA1c test is on record. NRCeS/ADA clinical guidelines recommend baseline and quarterly surveillance.',
-          badge: 'Missing Baseline',
-          color: 'amber',
-        };
-      }
-
-      const latest = hba1cObs[0];
-      const val = latest.valueQuantity?.value ?? 0;
-      const dateStr = latest.effectiveDateTime ? latest.effectiveDateTime.split('T')[0] : 'Unknown';
-
-      if (val >= 9.0) {
-        return {
-          type: 'severe',
-          title: 'Critical Care Gap: Severely Elevated HbA1c',
-          message: `Last recorded HbA1c was ${val}% (on ${dateStr}). Glycemic control is critically above target (< 7.0%). Immediate clinical consultation and treatment intensification recommended.`,
-          badge: `HbA1c ${val}% Overdue`,
-          color: 'rose',
-        };
-      } else if (val >= 8.0) {
-        return {
-          type: 'moderate',
-          title: 'Care Gap: Sub-Optimal HbA1c & Overdue Monitoring',
-          message: `Last recorded HbA1c was ${val}% (on ${dateStr}). The test is > 180 days old. Routine 3–6 month follow-up is overdue.`,
-          badge: `HbA1c ${val}% Overdue`,
-          color: 'amber',
-        };
-      } else {
-        return {
-          type: 'controlled',
-          title: 'Care Plan on Track: Glycemic Target Met',
-          message: `Recent HbA1c is ${val}% (on ${dateStr}), within the recommended ADA/NRCeS target (< 7.0%). Continue current therapy and schedule routine checkup in 3 months.`,
-          badge: `HbA1c ${val}% Optimal`,
-          color: 'emerald',
-        };
-      }
-    }
-
-    // 2. If patient has Coronary Artery Disease
-    if (hasCAD) {
-      return {
-        type: 'cardio',
-        title: 'Cardiovascular Care Plan: Secondary Prevention Active',
-        message:
-          'Longitudinal lipid biomarkers recorded (Total Cholesterol 242 mg/dL, LDL 158 mg/dL). Daily statin and antiplatelet therapy active. Blood pressure monitored at 148/92 mmHg.',
-        badge: 'Cardio Protocol',
-        color: 'blue',
+    if (source === 'live' || (source as string) === 'backend') {
+      const fetchBackendGaps = async () => {
+        try {
+          const res = await fetch(`/api/patient/${encodeURIComponent(activeAbha)}/care-gaps`);
+          if (res.ok) {
+            const data = (await res.json()) as CareGap[];
+            if (!isCancelled) setBackendGaps(data);
+            return;
+          }
+        } catch {
+          // ignore network failure
+        }
+        if (!isCancelled) setBackendGaps(null);
       };
+
+      void fetchBackendGaps();
+    } else {
+      setBackendGaps(null);
     }
 
-    // 3. If patient has Asthma
-    if (hasAsthma) {
+    return () => {
+      isCancelled = true;
+    };
+  }, [source, activeAbha, bundle]);
+
+  // Client-side computed gaps for offline mode or fallback
+  const clientGaps = useMemo(() => {
+    if (!bundle?.entry) return [];
+
+    const inputs: ClinicalResourceInput[] = bundle.entry.map((e) => {
+      const r = e.resource as Record<string, unknown>;
+      const codeObj = r.code as Record<string, unknown> | undefined;
+      const codings = (codeObj?.coding as Array<Record<string, unknown>>) || [];
+      const valQty = r.valueQuantity as Record<string, unknown> | undefined;
+
+      const title =
+        (codeObj?.text as string) ||
+        (codings[0]?.display as string) ||
+        (r.resourceType as string);
+
+      const valStr = valQty
+        ? `${valQty.value} ${valQty.unit || ''}`
+        : (r.valueString as string) || null;
+
+      const dateStr =
+        (r.effectiveDateTime as string) ||
+        (r.issued as string) ||
+        (r.recordedDate as string) ||
+        (r.authoredOn as string) ||
+        null;
+
+      const metaObj = r.meta as Record<string, unknown> | undefined;
+      const metaTags = (metaObj?.tag as Array<Record<string, unknown>>) || [];
+      const isOcr =
+        (r.source as string) === 'ocr_scan' ||
+        metaTags.some((t) => t.code === 'ocr-scan');
+
       return {
-        type: 'respiratory',
-        title: 'Pulmonary Care Plan: Maintenance Inhaler Active',
-        message:
-          'Bronchial asthma with recorded PEFR 340 L/min and SpO2 97%. Dual bronchodilator/corticosteroid inhaler prescribed with leukotriene receptor antagonist.',
-        badge: 'Respiratory Protocol',
-        color: 'teal',
+        id: r.id as string,
+        fhir_id: r.id as string,
+        resource_type: r.resourceType as string,
+        event_date: dateStr,
+        summary_title: title,
+        summary_value: valStr,
+        source: isOcr ? 'ocr_scan' : 'ingested',
+        raw_json: r,
       };
-    }
+    });
 
-    return null;
+    return evaluateCareGaps(inputs);
   }, [bundle]);
 
-  if (!gapAnalysis) return null;
+  const rawGaps = backendGaps !== null ? backendGaps : clientGaps;
 
-  const colorStyles = {
-    rose: {
-      wrapper: 'border-rose-200 bg-rose-50/80 text-rose-950',
-      iconBg: 'bg-rose-100 text-rose-700',
-      badge: 'bg-rose-100 text-rose-800 border-rose-300',
-      Icon: AlertTriangle,
-    },
-    amber: {
-      wrapper: 'border-amber-200 bg-amber-50/80 text-amber-950',
-      iconBg: 'bg-amber-100 text-amber-700',
-      badge: 'bg-amber-100 text-amber-800 border-amber-300',
-      Icon: Clock,
-    },
-    emerald: {
-      wrapper: 'border-emerald-200 bg-emerald-50/80 text-emerald-950',
-      iconBg: 'bg-emerald-100 text-emerald-700',
-      badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      Icon: CheckCircle,
-    },
-    blue: {
-      wrapper: 'border-blue-200 bg-blue-50/80 text-blue-950',
-      iconBg: 'bg-blue-100 text-blue-700',
-      badge: 'bg-blue-100 text-blue-800 border-blue-300',
-      Icon: HeartPulse,
-    },
-    teal: {
-      wrapper: 'border-teal-200 bg-teal-50/80 text-teal-950',
-      iconBg: 'bg-teal-100 text-teal-700',
-      badge: 'bg-teal-100 text-teal-800 border-teal-300',
-      Icon: Activity,
-    },
-  }[gapAnalysis.color as 'rose' | 'amber' | 'emerald' | 'blue' | 'teal'];
+  // Filter out session-dismissed gaps
+  const activeGaps = rawGaps.filter((gap) => !dismissedCodes.has(gap.code));
 
-  const IconComponent = colorStyles.Icon;
+  const handleDismiss = (code: string) => {
+    setDismissedCodes((prev) => {
+      const next = new Set(prev);
+      next.add(code);
+      try {
+        sessionStorage.setItem('dismissed_care_gaps', JSON.stringify(Array.from(next)));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  if (activeGaps.length === 0) return null;
 
   return (
-    <div
-      className={`rounded-24 border p-4 sm:p-5 shadow-sm transition-all mb-6 ${colorStyles.wrapper}`}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-start gap-3.5">
-          <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-xs ${colorStyles.iconBg}`}
-          >
-            <IconComponent className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-serif text-base sm:text-lg font-medium leading-tight">
-                {gapAnalysis.title}
-              </h4>
-            </div>
-            <p className="text-xs sm:text-sm opacity-90 leading-relaxed max-w-2xl">
-              {gapAnalysis.message}
-            </p>
-          </div>
-        </div>
+    <TooltipProvider delayDuration={200}>
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex flex-col gap-3.5 mb-6 w-full animate-fade-up"
+      >
+        {activeGaps.map((gap) => {
+          const isHigh = gap.severity === 'high';
+          const isMedium = gap.severity === 'medium';
 
-        <span
-          className={`self-start sm:self-center shrink-0 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold ${colorStyles.badge}`}
-        >
-          {gapAnalysis.badge}
-        </span>
+          const wrapperStyle = isHigh
+            ? 'border-rose-200/90 bg-rose-50/85 text-rose-950 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100'
+            : isMedium
+            ? 'border-amber-200/90 bg-amber-50/85 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100'
+            : 'border-blue-200/90 bg-blue-50/85 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100';
+
+          const iconStyle = isHigh
+            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300'
+            : isMedium
+            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300';
+
+          const badgeStyle = isHigh
+            ? 'bg-rose-100/90 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800'
+            : isMedium
+            ? 'bg-amber-100/90 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800'
+            : 'bg-blue-100/90 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800';
+
+          const IconComponent = gap.code.includes('BP')
+            ? HeartPulse
+            : gap.code.includes('HBA1C')
+            ? Clock
+            : isHigh
+            ? AlertTriangle
+            : Activity;
+
+          const ruleTooltipText =
+            RULE_DESCRIPTIONS[gap.code] || `Demo rule v${gap.rule_version}: ${gap.title}`;
+
+          return (
+            <div
+              key={gap.code}
+              className={`relative rounded-24 border p-4 sm:p-5 shadow-sm transition-all ${wrapperStyle}`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="flex items-start gap-3.5 pr-8 sm:pr-0">
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-xs ${iconStyle}`}
+                  >
+                    <IconComponent className="h-5 w-5" />
+                  </span>
+
+                  <div className="space-y-1.5 max-w-2xl">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-serif text-base sm:text-lg font-medium leading-tight">
+                        {gap.title}
+                      </h4>
+
+                      {/* Rule Tooltip */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-mono font-medium opacity-80 hover:opacity-100 border border-current transition-opacity cursor-help"
+                            aria-label={`Rule explanation for ${gap.code}`}
+                          >
+                            <Info className="h-3 w-3" />
+                            <span>Demo rule</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-xs font-sans">
+                          {ruleTooltipText}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    <p className="text-xs sm:text-sm opacity-90 leading-relaxed">
+                      {gap.message}
+                    </p>
+
+                    {/* Evidence Dates & Summaries */}
+                    {gap.evidence && gap.evidence.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-xs opacity-80">
+                        <span className="font-semibold flex items-center gap-1 text-[11px]">
+                          <Calendar className="h-3.5 w-3.5" />
+                          Evidence:
+                        </span>
+                        {gap.evidence.map((ev, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-white/60 dark:bg-black/20 border border-current/20 px-2 py-0.5 text-[11px] font-mono"
+                          >
+                            <span>{ev.summary}</span>
+                            {ev.source === 'ocr_scan' && (
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 px-1.5 py-0.2 text-[9px] font-semibold">
+                                <FileCheck2 className="h-2.5 w-2.5" />
+                                Scanned
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start shrink-0">
+                  <span
+                    className={`rounded-full border px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider ${badgeStyle}`}
+                  >
+                    {gap.severity} severity
+                  </span>
+
+                  {/* Session-only Dismiss Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDismiss(gap.code)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full opacity-60 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                    title="Dismiss alert for this session"
+                    aria-label={`Dismiss ${gap.title}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
