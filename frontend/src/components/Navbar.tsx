@@ -7,7 +7,7 @@ import { DataSourceSelect } from './DataSourceSelect';
 import { ThemeToggle } from './ThemeToggle';
 
 export const Navbar: React.FC = () => {
-  const { patient, statusState, statusText } = usePatientData();
+  const { source, statusText } = usePatientData();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -15,11 +15,18 @@ export const Navbar: React.FC = () => {
   const isLanding = location.pathname === '/';
 
   const dotColorClass =
-    statusState === 'live'
+    source === 'backend' || source === 'hapi'
       ? 'bg-emerald-500 ring-emerald-500/30'
-      : statusState === 'fallback'
+      : source === 'offline'
       ? 'bg-amber-500 ring-amber-500/30'
       : 'bg-stone-400 ring-stone-400/20';
+
+  // Fallback patient data for the header
+  const patient = {
+    resourceType: 'Patient',
+    name: [{ text: 'Ramesh Kumar' }],
+    identifier: [{ system: 'https://healthid.ndhm.gov.in', value: '91-2345-6789-0123' }]
+  } as any;
 
   return (
     <header className="sticky top-4 z-40 mx-auto w-full max-w-[1640px] px-5 sm:px-8 lg:px-12">
@@ -149,7 +156,7 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={`h-2 w-2 rounded-full ring-2 ${dotColorClass}`} />
-                <span className="text-xs text-ink-soft">{statusState}</span>
+                <span className="text-xs text-ink-soft">{source}</span>
               </div>
               <DataSourceSelect />
             </div>

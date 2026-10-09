@@ -1,114 +1,22 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Search, CornerDownLeft, Sparkles, Building2, User, FileCode } from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
-import { matchesRxId, matchesAbha } from '@/lib/normalise';
-import type {
-  FhirMedicationRequest,
-  FhirEncounter,
-  FhirPatient,
-  FhirIdentifier,
-} from '@/lib/fhir/types';
+import { usePrescription } from '@/hooks/usePrescription';
 import { PrescriptionCard } from './PrescriptionCard';
 import { Badge } from '@/components/ui/badge';
+import type { FhirMedicationRequest, FhirEncounter, FhirPatient } from '@/lib/fhir/types';
 
 export const ClinicianSearch: React.FC = () => {
-  const { availablePatients, patient: defaultPatient, setSelectedResource } = usePatientData();
+  const { setSelectedResource } = usePatientData();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
 
-  // Extract all medication requests across all available patients
-  const allIndexedRecords = useMemo(() => {
-    const list: Array<{
-      medication: FhirMedicationRequest;
-      encounter?: FhirEncounter;
-      patient: FhirPatient;
-      patientName: string;
-      rxId: string;
-    }> = [];
-
-    for (const profile of availablePatients || []) {
-      const pBundle = profile.bundle;
-      const pPatient = (pBundle.entry?.find(
-        (e) => e.resource.resourceType === 'Patient'
-      )?.resource as FhirPatient) || null;
-
-      const encounterMap = new Map<string, FhirEncounter>();
-      for (const e of pBundle.entry || []) {
-        if (e.resource.resourceType === 'Encounter') {
-          const enc = e.resource as FhirEncounter;
-          encounterMap.set(enc.id, enc);
-          encounterMap.set(`urn:uuid:${enc.id}`, enc);
-          encounterMap.set(`Encounter/${enc.id}`, enc);
-        }
-      }
-
-      for (const e of pBundle.entry || []) {
-        if (e.resource.resourceType === 'MedicationRequest') {
-          const med = e.resource as FhirMedicationRequest;
-          const rxToken = med.identifier?.find(
-            (id: FhirIdentifier) => id.system === 'https://abdm.gov.in/rx-token'
-          );
-          const rxId = rxToken?.value || profile.sampleRxId;
-          const encRef = med.encounter?.reference;
-          const encounter = encRef ? encounterMap.get(encRef) : undefined;
-
-          if (pPatient) {
-            list.push({
-              medication: med,
-              encounter,
-              patient: pPatient,
-              patientName: profile.name,
-              rxId,
-            });
-          }
-        }
-      }
-    }
-
-    return list;
-  }, [availablePatients]);
-
-  // Extract encounters across all patients mapped by patient ABHA
-  const patientEncounterMap = useMemo(() => {
-    const map = new Map<string, { patient: FhirPatient; recentEncounter?: FhirEncounter }>();
-    for (const profile of availablePatients || []) {
-      const pBundle = profile.bundle;
-      const pPatient = pBundle.entry?.find(
-        (e) => e.resource.resourceType === 'Patient'
-      )?.resource as FhirPatient;
-
-      if (!pPatient) continue;
-
-      const encounters = (pBundle.entry || [])
-        .filter((e) => e.resource.resourceType === 'Encounter')
-        .map((e) => e.resource as FhirEncounter)
-        .sort((a, b) => {
-          const dateA = a.period?.start || '';
-          const dateB = b.period?.start || '';
-          return dateB.localeCompare(dateA);
-        });
-
-      const abha = pPatient.identifier?.find(
-        (id) => id.system === 'https://healthid.ndhm.gov.in'
-      )?.value || profile.abha;
-
-      map.set(abha, {
-        patient: pPatient,
-        recentEncounter: encounters[0],
-      });
-    }
-    return map;
-  }, [availablePatients]);
+  const { data: prescription, isLoading, error } = usePrescription(activeQuery);
 
   // Sample Rx-IDs with patient metadata for hackathon demonstration
-  const sampleItems = useMemo(() => {
-    return (availablePatients || []).map((p) => ({
-      rxId: p.sampleRxId,
-      name: p.name,
-      condition: p.primaryConditions[0],
-      abha: p.abha,
-    }));
-  }, [availablePatients]);
+  const sampleItems = [
+    { rxId: 'APL-RR-1410-RAME', name: 'Ramesh Kumar', condition: 'Type 2 Diabetes', abha: '91-2345-6789-0123' }
+  ];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,63 +27,6 @@ export const ClinicianSearch: React.FC = () => {
     setSearchTerm(sample);
     setActiveQuery(sample);
   };
-
-  // Perform search matching
-  let searchResult:
-    | {
-        type: 'rx-id';
-        rxId: string;
-        medication: FhirMedicationRequest;
-        encounter?: FhirEncounter;
-        patient: FhirPatient;
-      }
-    | {
-        type: 'abha';
-        patient: FhirPatient;
-        recentEncounter?: FhirEncounter;
-      }
-    | { type: 'not-found'; query: string }
-    | null = null;
-
-  if (activeQuery) {
-    // 1. Check for Rx-ID match across all indexed records
-    const matchedRecord = allIndexedRecords.find((rec) =>
-      matchesRxId(rec.rxId, activeQuery)
-    );
-
-    if (matchedRecord) {
-      searchResult = {
-        type: 'rx-id',
-        rxId: matchedRecord.rxId,
-        medication: matchedRecord.medication,
-        encounter: matchedRecord.encounter,
-        patient: matchedRecord.patient,
-      };
-    } else {
-      // 2. Check for ABHA number match
-      let matchedAbhaRecord: { patient: FhirPatient; recentEncounter?: FhirEncounter } | undefined;
-
-      for (const [abhaId, entry] of patientEncounterMap.entries()) {
-        if (matchesAbha(abhaId, activeQuery)) {
-          matchedAbhaRecord = entry;
-          break;
-        }
-      }
-
-      if (matchedAbhaRecord) {
-        searchResult = {
-          type: 'abha',
-          patient: matchedAbhaRecord.patient,
-          recentEncounter: matchedAbhaRecord.recentEncounter,
-        };
-      } else {
-        searchResult = {
-          type: 'not-found',
-          query: activeQuery,
-        };
-      }
-    }
-  }
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-6">
@@ -245,134 +96,30 @@ export const ClinicianSearch: React.FC = () => {
 
       {/* Results Section */}
       <div className="w-full">
-        {searchResult?.type === 'rx-id' && (
+        {activeQuery && isLoading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Sparkles className="h-8 w-8 text-moss-500 animate-pulse mb-4" />
+            <p className="text-ink-soft">Searching ABDM Gateway...</p>
+          </div>
+        )}
+
+        {activeQuery && !isLoading && prescription && (
           <PrescriptionCard
-            medication={searchResult.medication}
-            encounter={searchResult.encounter}
-            patient={searchResult.patient}
-            rxId={searchResult.rxId}
+            prescription={prescription}
             onInspect={(res) => setSelectedResource(res)}
           />
         )}
 
-        {searchResult?.type === 'abha' && (
-          <div className="flex flex-col gap-6 w-full animate-fade-up">
-            <div className="rounded-20 border border-hairline bg-card p-6 shadow-soft">
-              <div className="flex items-center justify-between mb-4">
-                <span className="eyebrow-pill text-[10px]">
-                  <span className="eyebrow-dot" />
-                  ABHA Demographic Match
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedResource(searchResult?.type === 'abha' ? searchResult.patient : null)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-paper-2 px-3 py-1 text-xs text-ink hover:bg-paper-2"
-                >
-                  <FileCode className="h-3.5 w-3.5 text-moss-600" />
-                  <span>Inspect Patient FHIR</span>
-                </button>
-              </div>
-
-              {(() => {
-                const pat = searchResult.patient;
-                const name = pat.name?.[0]?.text || 'Patient';
-                const initials = name
-                  .split(' ')
-                  .filter(Boolean)
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join('')
-                  .toUpperCase();
-                const abhaNum = pat.identifier?.find((i) => i.system === 'https://healthid.ndhm.gov.in')?.value || 'ABHA';
-                const gender = pat.gender ? pat.gender.charAt(0).toUpperCase() + pat.gender.slice(1) : 'Unknown';
-                let age: number | string = 50;
-                if (pat.birthDate) {
-                  const birthYear = new Date(pat.birthDate).getFullYear();
-                  if (!isNaN(birthYear)) {
-                    age = new Date().getFullYear() - birthYear;
-                  }
-                }
-                const city = pat.address?.[0]?.city || 'India';
-                const state = pat.address?.[0]?.state || '';
-
-                return (
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 font-serif text-2xl text-paper">
-                      {initials}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-serif text-2xl text-ink">
-                          {name}
-                        </h3>
-                        <Badge variant="verified">Verified</Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
-                        <span>{age} years · {gender}</span>
-                        <span>•</span>
-                        <span className="font-mono font-medium text-ink">
-                          {abhaNum}
-                        </span>
-                        <span>•</span>
-                        <span>{city}{state ? `, ${state}` : ''}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Most recent encounter */}
-            {searchResult.recentEncounter && (
-              <div className="rounded-20 border border-hairline bg-card p-6 shadow-soft">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="eyebrow-pill text-[10px]">
-                    <span className="eyebrow-dot" />
-                    Most Recent Encounter
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedResource(searchResult?.type === 'abha' ? (searchResult.recentEncounter ?? null) : null)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-paper-2 px-3 py-1 text-xs text-ink"
-                  >
-                    <FileCode className="h-3.5 w-3.5 text-moss-600" />
-                    <span>Inspect Encounter FHIR</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-base text-ink">
-                    {searchResult.recentEncounter.serviceProvider?.display || 'Healthcare Facility'}
-                  </h4>
-                  <div className="flex flex-col gap-1 text-xs text-ink-soft">
-                    <span className="flex items-center gap-2">
-                      <User className="h-3.5 w-3.5" />
-                      Attending: {searchResult.recentEncounter.participant?.[0]?.individual?.display || 'Medical Officer'}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Building2 className="h-3.5 w-3.5" />
-                      Status: {searchResult.recentEncounter.status || 'Finished'} (Ambulatory)
-                    </span>
-                    <span className="font-mono">
-                      Date: {searchResult.recentEncounter.period?.start ? new Date(searchResult.recentEncounter.period.start).toLocaleDateString('en-GB') : 'Recorded'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {searchResult?.type === 'not-found' && (
+        {activeQuery && !isLoading && !prescription && (
           <div className="flex flex-col items-center justify-center rounded-28 border border-hairline bg-card p-12 text-center shadow-soft">
             <div className="h-14 w-14 rounded-full bg-paper-2 border border-hairline flex items-center justify-center text-ink-soft mb-4">
               <Search className="h-6 w-6" />
             </div>
             <h3 className="font-serif text-2xl text-ink mb-2">
-              No matching record for <span className="font-mono text-moss-600">"{searchResult.query}"</span>
+              No matching record for <span className="font-mono text-moss-600">"{activeQuery}"</span>
             </h3>
             <p className="max-w-md text-sm text-ink-soft mb-6 leading-relaxed">
-              Ensure the Rx-ID is typed correctly, or click one of the quick test sample chips above. Spacing, hyphens, and lowercase letters are automatically handled.
+              Ensure the Rx-ID is typed correctly, or click one of the quick test sample chips above.
             </p>
             {sampleItems.length > 0 && (
               <button
@@ -387,10 +134,10 @@ export const ClinicianSearch: React.FC = () => {
         )}
 
         {/* Initial Empty State before search */}
-        {!searchResult && (
+        {!activeQuery && (
           <div className="rounded-28 border border-hairline bg-card p-10 text-center shadow-soft">
             <h3 className="font-serif text-2xl text-ink mb-2">
-              Enter a Prescription ID or Patient ABHA
+              Enter a Prescription ID
             </h3>
             <p className="text-sm text-ink-soft max-w-lg mx-auto mb-6">
               When a patient presents an Rx-ID verbally or from their digital locker, enter it above to securely verify the prescription and encounter context.

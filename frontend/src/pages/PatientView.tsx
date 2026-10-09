@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { usePatientData } from '@/context/usePatientData';
+import { useTimeline } from '@/hooks/useTimeline';
 import { Timeline } from '@/components/Timeline';
 import { ResourceSheet } from '@/components/ResourceSheet';
 import { PatientSwitcher } from '@/components/PatientSwitcher';
@@ -7,27 +8,28 @@ import { CareGapBanner } from '@/components/CareGapBanner';
 import { Calendar, Activity, Pill, Shield } from 'lucide-react';
 
 export const PatientView: React.FC = () => {
-  const { bundle, patient, selectedResource, setSelectedResource } = usePatientData();
+  const { selectedResource, setSelectedResource } = usePatientData();
+  const { data } = useTimeline();
 
-  // Dynamic statistics from bundle
+  // Dynamic statistics from loaded items
   const stats = useMemo(() => {
-    if (!bundle?.entry) return { encounters: 0, conditions: 0, medications: 0, labs: 0 };
     let encounters = 0;
     let conditions = 0;
     let medications = 0;
     let labs = 0;
 
-    for (const e of bundle.entry) {
-      if (e.resource.resourceType === 'Encounter') encounters++;
-      if (e.resource.resourceType === 'Condition') conditions++;
-      if (e.resource.resourceType === 'MedicationRequest') medications++;
-      if (e.resource.resourceType === 'Observation') labs++;
+    const allItems = data?.pages.flatMap(p => p.items) || [];
+    for (const e of allItems) {
+      if (e.resourceType === 'Encounter') encounters++;
+      if (e.resourceType === 'Condition') conditions++;
+      if (e.resourceType === 'MedicationRequest') medications++;
+      if (e.resourceType === 'Observation') labs++;
     }
 
     return { encounters, conditions, medications, labs };
-  }, [bundle]);
+  }, [data]);
 
-  const patientName = patient?.name?.[0]?.text || 'Patient';
+  const patientName = 'Patient'; // We could fetch PatientMinimal or infer from activePatientId
 
   return (
     <div className="flex flex-col gap-6 pb-16 animate-fade-up">

@@ -1,5 +1,5 @@
 import { usePatientData } from '@/context/usePatientData';
-import type { DataSourceType } from '@/context/contextDefinition';
+import type { DataSourceType } from '@/context/PatientDataContext';
 import {
   Select,
   SelectContent,
@@ -9,14 +9,12 @@ import {
 } from '@/components/ui/select';
 
 export const DataSourceSelect: React.FC = () => {
-  const { source, setSource, statusState, statusText, isLoading } = usePatientData();
+  const { source, setSource, statusText } = usePatientData();
 
-  // Status dot color mapping:
-  // green dot = live, grey dot = offline, amber dot = fallback
   const dotColorClass =
-    statusState === 'live'
+    source === 'backend' || source === 'hapi'
       ? 'bg-emerald-500 ring-emerald-500/30'
-      : statusState === 'fallback'
+      : source === 'offline'
       ? 'bg-amber-500 ring-amber-500/30'
       : 'bg-stone-400 ring-stone-400/20';
 
@@ -31,7 +29,7 @@ export const DataSourceSelect: React.FC = () => {
           className={`h-2 w-2 rounded-full ring-2 ${dotColorClass} transition-colors`}
         />
         <span className="font-medium truncate max-w-[200px]">
-          {isLoading ? 'Fetching bundle...' : statusText}
+          {statusText}
         </span>
       </div>
 
@@ -40,7 +38,6 @@ export const DataSourceSelect: React.FC = () => {
         <Select
           value={source}
           onValueChange={(val) => setSource(val as DataSourceType)}
-          disabled={isLoading}
         >
           <SelectTrigger className="h-9 rounded-full bg-paper border-hairline text-xs font-medium focus:ring-teal-700">
             <SelectValue placeholder="Select Data Source" />
@@ -52,7 +49,13 @@ export const DataSourceSelect: React.FC = () => {
                 <span className="text-[10px] text-ink-soft">Synthetic verified dataset</span>
               </div>
             </SelectItem>
-            <SelectItem value="live">
+            <SelectItem value="backend">
+              <div className="flex flex-col text-left py-0.5">
+                <span className="font-medium text-xs">Backend Database</span>
+                <span className="text-[10px] text-ink-soft">Supabase Postgres</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="hapi">
               <div className="flex flex-col text-left py-0.5">
                 <span className="font-medium text-xs">Live HAPI FHIR</span>
                 <span className="text-[10px] text-ink-soft">hapi.fhir.org/baseR4 query</span>

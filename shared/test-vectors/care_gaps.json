@@ -1,0 +1,27 @@
+{
+    "description": "Test vectors for verifying Rx-ID and Care-Gap logic consistency between backend and frontend.",
+    "test_cases": [
+        {
+            "name": "Missing HbA1c",
+            "conditions": ["44054006"],
+            "observations": [],
+            "expected_gaps": ["HBA1C_OVERDUE"]
+        },
+        {
+            "name": "Recent HbA1c",
+            "conditions": ["44054006"],
+            "observations": [
+                { "code": "4548-4", "days_ago": 30 }
+            ],
+            "expected_gaps": []
+        },
+        {
+            "name": "Overdue HbA1c",
+            "conditions": ["44054006"],
+            "observations": [
+                { "code": "4548-4", "days_ago": 190 }
+            ],
+            "expected_gaps": ["HBA1C_OVERDUE"]
+        }
+    ]
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
-import type { TimelineDateGroup, TimelineEvent } from '@/lib/fhir/types';
+import type { TimelineDateGroup } from '@/lib/data-source/timeline-utils';
+import type { TimelineEvent } from '@/lib/data-source/types';
 import { EventCard } from './EventCard';
 
 interface TimelineDateNodeProps {

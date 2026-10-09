@@ -3,7 +3,10 @@ import { usePatientData } from '@/context/usePatientData';
 import { Users, AlertTriangle, CheckCircle, Clock, Stethoscope } from 'lucide-react';
 
 export const PatientSwitcher: React.FC = () => {
-  const { currentPatientId, setPatientId, availablePatients } = usePatientData();
+  const { activePatientId, setActivePatientId } = usePatientData();
+
+  // Mocked for Phase 1 where we only have one patient (Ramesh Kumar)
+  const availablePatients = [] as any[];
 
   if (!availablePatients || availablePatients.length <= 1) return null;
 
@@ -31,7 +34,7 @@ export const PatientSwitcher: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {availablePatients.map((p) => {
-          const isSelected = p.id === currentPatientId;
+          const isSelected = p.id === activePatientId;
           const statusIcon =
             p.careGapStatus === 'Controlled' ? (
               <CheckCircle className="h-3 w-3 text-emerald-600" />
@@ -56,7 +59,7 @@ export const PatientSwitcher: React.FC = () => {
             <button
               key={p.id}
               type="button"
-              onClick={() => setPatientId(p.id)}
+              onClick={() => setActivePatientId(p.id)}
               className={`flex flex-col items-start text-left p-3.5 rounded-20 border transition-all text-sm ${
                 isSelected
                   ? 'border-moss-600 bg-moss-50/70 shadow-md ring-2 ring-moss-600/20'
@@ -82,7 +85,7 @@ export const PatientSwitcher: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap gap-1 mb-2">
-                {p.primaryConditions.map((c) => (
+                {p.primaryConditions?.map((c: any) => (
                   <span
                     key={c}
                     className="rounded-md bg-paper-2 px-1.5 py-0.5 text-[10px] text-ink-soft font-medium border border-hairline/60"

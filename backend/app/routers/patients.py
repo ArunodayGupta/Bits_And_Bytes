@@ -54,7 +54,7 @@ def get_timeline(
         except Exception:
             pass
             
-    query = query.order("event_date", desc=True, nulls_last=True).order("id", desc=True)
+    query = query.order("event_date", desc=True).order("id", desc=True)
     query = query.range(offset, offset + limit - 1)
     
     resp = query.execute()

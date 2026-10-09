@@ -1,17 +1,15 @@
 import React, { useMemo } from 'react';
 import { Search, Pill, Droplet, Activity, Building2, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
-import type { TimelineEvent, TimelineEventType, TimelineDateGroup } from '@/lib/fhir/types';
+import { useTimeline } from '@/hooks/useTimeline';
 import { TimelineDateNode } from './TimelineDateNode';
 import { ObservationTrend } from './ObservationTrend';
-import { extractObservationTrends } from '@/lib/fhir/buildTimeline';
+import { buildTimelineFromEvents, extractObservationTrends, TimelineDateGroup } from '@/lib/data-source/timeline-utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { TimelineEvent } from '@/lib/data-source/types';
 
 export const Timeline: React.FC = () => {
   const {
-    filteredTimelineGroups,
-    timelineGroups,
-    isLoading,
     activeFilter,
     setActiveFilter,
     searchQuery,
@@ -19,21 +17,50 @@ export const Timeline: React.FC = () => {
     setSelectedResource,
   } = usePatientData();
 
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useTimeline();
+
   const handleInspect = (event: TimelineEvent) => {
-    setSelectedResource(event.resource);
+    setSelectedResource(event.raw);
   };
 
-  // Trend series (e.g. HbA1c, BP)
+  const allItems = useMemo(() => {
+    return data?.pages.flatMap(page => page.items) || [];
+  }, [data]);
+
+  const timelineGroups = useMemo(() => {
+    return buildTimelineFromEvents(allItems);
+  }, [allItems]);
+
+  // Filtered timeline based on active filter chip and search query (run client-side over loaded items)
+  const filteredTimelineGroups = useMemo(() => {
+    if (!timelineGroups.length) return [];
+    const lowerQuery = searchQuery.trim().toLowerCase();
+
+    return timelineGroups
+      .map((group) => {
+        const filteredEvents = group.events.filter((ev) => {
+          if (!lowerQuery) return true;
+          const matchesTitle = ev.title.toLowerCase().includes(lowerQuery);
+          const matchesValue = ev.value?.toLowerCase().includes(lowerQuery);
+          const matchesRx = ev.rxId?.toLowerCase().includes(lowerQuery);
+          return matchesTitle || matchesValue || matchesRx;
+        });
+
+        return { ...group, events: filteredEvents };
+      })
+      .filter((group) => group.events.length > 0);
+  }, [timelineGroups, searchQuery]);
+
   const trendSeries = useMemo(() => {
     return extractObservationTrends(timelineGroups);
   }, [timelineGroups]);
 
-  const filterOptions: Array<{ id: 'all' | TimelineEventType; label: string; icon: React.ElementType }> = [
+  const filterOptions: Array<{ id: string; label: string; icon: React.ElementType }> = [
     { id: 'all', label: 'All Records', icon: SlidersHorizontal },
-    { id: 'medication', label: 'Medications', icon: Pill },
-    { id: 'lab', label: 'Lab Tests', icon: Droplet },
-    { id: 'condition', label: 'Conditions', icon: Activity },
-    { id: 'encounter', label: 'Encounters', icon: Building2 },
+    { id: 'MedicationRequest', label: 'Medications', icon: Pill },
+    { id: 'Observation', label: 'Lab Tests', icon: Droplet },
+    { id: 'Condition', label: 'Conditions', icon: Activity },
+    { id: 'Encounter', label: 'Encounters', icon: Building2 },
   ];
 
   if (isLoading) {
@@ -122,7 +149,7 @@ export const Timeline: React.FC = () => {
       </div>
 
       {/* Mini Trend Sparklines */}
-      {trendSeries.length > 0 && activeFilter !== 'medication' && activeFilter !== 'encounter' && (
+      {trendSeries.length > 0 && activeFilter !== 'MedicationRequest' && activeFilter !== 'Encounter' && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-3">
             <span className="eyebrow-pill text-[10px]">
@@ -187,6 +214,19 @@ export const Timeline: React.FC = () => {
               />
             ))}
           </div>
+
+          {hasNextPage && (
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="rounded-full bg-paper-2 border border-hairline px-6 py-2.5 text-sm font-medium text-ink hover:bg-moss-100/50 disabled:opacity-50"
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,205 +1,107 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import type {
-  FhirBundle,
-  FhirPatient,
-  FhirResource,
-  TimelineEventType,
-} from '@/lib/fhir/types';
-import { fetchPatientData } from '@/lib/fhir/fetchPatientData';
-import { buildTimeline } from '@/lib/fhir/buildTimeline';
-import { injectRxIdsIntoBundle } from '@/lib/rxId';
-import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE, type PatientProfile } from '@/data/patients';
-import {
-  PatientDataContext,
-  type DataSourceType,
-  type SourceStatusState,
-  type PatientDataContextValue,
-} from './contextDefinition';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { PatientDataSource, TimelineEvent, PrescriptionInfo, CareGapAlert } from '@/lib/data-source/types';
+import { BackendSource } from '@/lib/data-source/BackendSource';
+import { OfflineSource } from '@/lib/data-source/OfflineSource';
+import { HapiSource } from '@/lib/data-source/HapiSource';
+import * as api from '@/lib/api/endpoints';
+import { config } from '@/lib/config';
 
-export type { DataSourceType, SourceStatusState, PatientDataContextValue } from './contextDefinition';
+export type DataSourceType = 'backend' | 'offline' | 'hapi';
 
-// Initial offline bootstrap to ensure zero flash on initial render
-const initialRaw = DEFAULT_PATIENT_PROFILE.bundle;
-const initialPrepared = injectRxIdsIntoBundle(initialRaw);
-const initialPatient =
-  (initialPrepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient) ||
-  null;
+interface PatientDataContextValue {
+    source: DataSourceType;
+    setSource: (src: DataSourceType) => void;
+    activePatientId: string;
+    setActivePatientId: (id: string) => void;
+    getDataSource: () => PatientDataSource;
+    handleBackendFailure: () => void;
+    statusText: string;
+    
+    // UI state
+    selectedResource: any | null;
+    setSelectedResource: (res: any | null) => void;
+    activeFilter: string;
+    setActiveFilter: (filter: string) => void;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+}
+
+const PatientContext = createContext<PatientDataContextValue | undefined>(undefined);
 
 export function PatientDataProvider({ children }: { children: React.ReactNode }) {
-  const [currentPatientId, setCurrentPatientId] = useState<string>(DEFAULT_PATIENT_PROFILE.id);
-  const [source, setSourceState] = useState<DataSourceType>('offline');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [statusState, setStatusState] = useState<SourceStatusState>('offline');
-  const [statusText, setStatusText] = useState<string>(`Source: Offline (${DEFAULT_PATIENT_PROFILE.name})`);
-  const [rawBundle, setRawBundle] = useState<FhirBundle | null>(initialRaw);
-  const [bundle, setBundle] = useState<FhirBundle | null>(initialPrepared.bundle);
-  const [patient, setPatient] = useState<FhirPatient | null>(initialPatient);
-  const [selectedResource, setSelectedResource] = useState<FhirResource | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | TimelineEventType>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [source, setSourceState] = useState<DataSourceType>('offline');
+    const [activePatientId, setActivePatientId] = useState(config.defaultAbha);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [hasFallenBack, setHasFallenBack] = useState(false);
+    
+    const [selectedResource, setSelectedResource] = useState<any | null>(null);
+    const [activeFilter, setActiveFilter] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const clearToast = useCallback(() => setToastMessage(null), []);
-
-  const loadData = useCallback(async (requestedSource: DataSourceType, patientId?: string) => {
-    setIsLoading(true);
-    let didFallback = false;
-    const targetPatientId = patientId ?? currentPatientId;
-    const profile = PATIENT_PROFILES.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
-
-    try {
-      let fetchedBundle: FhirBundle;
-      if (requestedSource === 'offline') {
-        fetchedBundle = JSON.parse(JSON.stringify(profile.bundle)) as FhirBundle;
-      } else {
-        fetchedBundle = await fetchPatientData(requestedSource, () => {
-          didFallback = true;
-        });
-      }
-
-      // Inject deterministic speakable Rx-IDs into all MedicationRequests
-      const { bundle: preparedBundle } = injectRxIdsIntoBundle(fetchedBundle);
-
-      setRawBundle(fetchedBundle);
-      setBundle(preparedBundle);
-
-      // Extract Patient resource
-      const patientEntry = preparedBundle.entry?.find(
-        (e) => e.resource.resourceType === 'Patient'
-      );
-      if (patientEntry) {
-        setPatient(patientEntry.resource as FhirPatient);
-      }
-
-      const totalResources = preparedBundle.entry?.length ?? 0;
-
-      if (requestedSource === 'live') {
-        if (didFallback) {
-          setStatusState('fallback');
-          setStatusText('Live failed, using offline');
-          setToastMessage('Live server unavailable, showing offline bundle.');
-        } else {
-          setStatusState('live');
-          setStatusText(`Source: Live HAPI (${totalResources} resources)`);
-        }
-      } else {
-        setStatusState('offline');
-        setStatusText(`Source: Offline (${profile.name})`);
-      }
-    } catch (err) {
-      console.error('Critical loading error:', err);
-      setStatusState('fallback');
-      setStatusText('Live failed, using offline');
-      setToastMessage('Live server unavailable, showing offline bundle.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPatientId]);
-
-  const setSource = useCallback(
-    (newSource: DataSourceType) => {
-      setSourceState(newSource);
-      void loadData(newSource);
-    },
-    [loadData]
-  );
-
-  const setPatientId = useCallback(
-    (patientId: string) => {
-      setCurrentPatientId(patientId);
-      const profile = PATIENT_PROFILES.find((p) => p.id === patientId) || DEFAULT_PATIENT_PROFILE;
-      const prepared = injectRxIdsIntoBundle(profile.bundle);
-      setRawBundle(profile.bundle);
-      setBundle(prepared.bundle);
-      const pResource = prepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient;
-      setPatient(pResource || null);
-      setSelectedResource(null);
-      if (source === 'offline') {
-        setStatusText(`Source: Offline (${profile.name})`);
-      }
-    },
-    [source]
-  );
-
-  const reload = useCallback(async () => {
-    await loadData(source);
-  }, [loadData, source]);
-
-  // Derived timeline groups
-  const timelineGroups = useMemo(() => {
-    if (!bundle) return [];
-    return buildTimeline(bundle);
-  }, [bundle]);
-
-  // Filtered timeline based on active filter chip and search query
-  const filteredTimelineGroups = useMemo(() => {
-    if (!timelineGroups.length) return [];
-    const lowerQuery = searchQuery.trim().toLowerCase();
-
-    return timelineGroups
-      .map((group) => {
-        const filteredEvents = group.events.filter((ev) => {
-          // Filter by category
-          if (activeFilter !== 'all' && ev.type !== activeFilter) {
-            return false;
-          }
-
-          // Filter by search query
-          if (!lowerQuery) return true;
-
-          const matchesTitle = ev.title.toLowerCase().includes(lowerQuery);
-          const matchesSubtitle = ev.subtitle?.toLowerCase().includes(lowerQuery);
-          const matchesHospital = ev.hospital?.toLowerCase().includes(lowerQuery);
-          const matchesDoctor = ev.doctor?.toLowerCase().includes(lowerQuery);
-          const matchesRx = ev.rxId?.toLowerCase().includes(lowerQuery);
-          const matchesBadge = ev.badge?.toLowerCase().includes(lowerQuery);
-
-          return (
-            matchesTitle ||
-            matchesSubtitle ||
-            matchesHospital ||
-            matchesDoctor ||
-            matchesRx ||
-            matchesBadge
-          );
-        });
-
-        return {
-          ...group,
-          events: filteredEvents,
+    useEffect(() => {
+        let mounted = true;
+        const init = async () => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const baseUrl = config.apiBaseUrl ? `${config.apiBaseUrl}/health` : `/api/health`;
+                
+                const res = await fetch(baseUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (res.ok && mounted) {
+                    setSourceState('backend');
+                }
+            } catch (err) {
+                // Silently fallback to offline
+            } finally {
+                if (mounted) setIsInitialized(true);
+            }
         };
-      })
-      .filter((group) => group.events.length > 0);
-  }, [timelineGroups, activeFilter, searchQuery]);
+        init();
+        return () => { mounted = false; };
+    }, []);
 
-  const value: PatientDataContextValue = {
-    source,
-    setSource,
-    isLoading,
-    statusState,
-    statusText,
-    rawBundle,
-    bundle,
-    patient,
-    timelineGroups,
-    filteredTimelineGroups,
-    selectedResource,
-    setSelectedResource,
-    activeFilter,
-    setActiveFilter,
-    searchQuery,
-    setSearchQuery,
-    toastMessage,
-    clearToast,
-    reload,
-    currentPatientId,
-    setPatientId,
-    availablePatients: PATIENT_PROFILES,
-  };
+    const getDataSource = useCallback(() => {
+        if (source === 'backend') return new BackendSource();
+        if (source === 'hapi') return new HapiSource();
+        return new OfflineSource();
+    }, [source]);
 
-  return (
-    <PatientDataContext.Provider value={value}>
-      {children}
-    </PatientDataContext.Provider>
-  );
+    const handleBackendFailure = useCallback(() => {
+        if (source === 'backend') {
+            setSourceState('offline');
+            setHasFallenBack(true);
+        }
+    }, [source]);
+
+    let statusText = 'Offline bundle';
+    if (source === 'backend') statusText = 'Backend: connected (v1.0.0)';
+    if (source === 'hapi') statusText = 'Live HAPI FHIR';
+    if (hasFallenBack && source === 'offline') statusText = 'Offline bundle (Fallback)';
+
+    if (!isInitialized) return null; // Or a loading spinner
+
+    return (
+        <PatientContext.Provider value={{
+            source,
+            setSource: (s) => { setSourceState(s); setHasFallenBack(false); },
+            activePatientId,
+            setActivePatientId,
+            getDataSource,
+            handleBackendFailure,
+            statusText,
+            selectedResource, setSelectedResource,
+            activeFilter, setActiveFilter,
+            searchQuery, setSearchQuery
+        }}>
+            {children}
+        </PatientContext.Provider>
+    );
+}
+
+export function usePatientData() {
+    const context = useContext(PatientContext);
+    if (!context) throw new Error('usePatientData must be used within PatientDataProvider');
+    return context;
 }

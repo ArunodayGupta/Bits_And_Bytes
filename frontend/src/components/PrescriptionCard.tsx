@@ -8,59 +8,49 @@ import {
   ShieldCheck,
   CheckCircle2,
 } from 'lucide-react';
-import type {
-  FhirMedicationRequest,
-  FhirEncounter,
-  FhirPatient,
-  FhirResource,
-} from '@/lib/fhir/types';
+import type { PrescriptionInfo } from '@/lib/data-source/types';
 import { Badge } from '@/components/ui/badge';
 
 interface PrescriptionCardProps {
-  medication: FhirMedicationRequest;
-  encounter?: FhirEncounter;
-  patient: FhirPatient | null;
-  rxId: string;
-  onInspect: (resource: FhirResource) => void;
+  prescription: PrescriptionInfo;
+  onInspect: (resource: any) => void;
 }
 
 export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
-  medication,
-  encounter,
-  patient,
-  rxId,
+  prescription,
   onInspect,
 }) => {
+  const firstMed: any = prescription.medications[0];
   const drugName =
-    medication.medicationCodeableConcept?.coding?.[0]?.display ||
-    medication.medicationCodeableConcept?.text ||
+    firstMed?.medicationCodeableConcept?.coding?.[0]?.display ||
+    firstMed?.medicationCodeableConcept?.text ||
     'Prescribed Medication';
 
   const dosage =
-    medication.dosageInstruction?.[0]?.text || 'As directed by physician';
+    firstMed?.dosageInstruction?.[0]?.text || 'As directed by physician';
 
-  const doctorName =
-    medication.requester?.display ||
-    encounter?.participant?.[0]?.individual?.display ||
-    'Dr. Rajesh Rao';
+  const doctorName = prescription.doctor || 'Unknown Doctor';
+  const hospitalName = prescription.hospital || 'Unknown Hospital';
 
-  const hospitalName =
-    medication.encounter?.display ||
-    encounter?.serviceProvider?.display ||
-    'Apollo Hospitals Chennai';
-
-  const authoredDate = medication.authoredOn
-    ? new Date(medication.authoredOn).toLocaleDateString('en-GB', {
+  const authoredDate = prescription.issued_on
+    ? new Date(prescription.issued_on).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
       })
     : 'Recent';
 
-  const patientName = patient?.name?.[0]?.text || 'Ramesh Kumar';
-  const abhaId =
-    patient?.identifier?.find((i) => i.system === 'https://healthid.ndhm.gov.in')
-      ?.value || '91-1234-5678-9012';
+  const patientName = prescription.patient.name || 'Unknown Patient';
+  const abhaId = prescription.patient.abha_id || 'Unknown ABHA';
+  
+  let ageString = 'Unknown age';
+  if (prescription.patient.dob) {
+      const birthYear = new Date(prescription.patient.dob).getFullYear();
+      if (!isNaN(birthYear)) {
+          ageString = `${new Date().getFullYear() - birthYear}`;
+      }
+  }
+  const gender = prescription.patient.gender ? prescription.patient.gender.charAt(0).toUpperCase() + prescription.patient.gender.slice(1) : 'Unknown';
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-up">
@@ -94,7 +84,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
               <div className="flex items-center gap-3">
                 <span className="rounded-md border-2 border-moss-600/60 bg-paper-2 px-3 py-1 font-mono text-sm font-bold tracking-widest text-moss-600 uppercase shadow-xs">
-                  {rxId}
+                  {prescription.rx_id}
                 </span>
                 <span className="text-xs uppercase tracking-wider text-ink-soft font-semibold">
                   Electronic Prescription
@@ -160,7 +150,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
             <div className="flex items-center justify-end pt-2">
               <button
                 type="button"
-                onClick={() => onInspect(medication)}
+                onClick={() => onInspect(firstMed)}
                 className="inline-flex items-center gap-2 rounded-full border border-hairline bg-paper-2 px-4 py-2 text-xs font-medium text-ink hover:bg-moss-100/50 hover:border-moss-500/50 transition-colors"
               >
                 <FileCode className="h-3.5 w-3.5 text-moss-600" />
@@ -180,21 +170,24 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
               <span className="eyebrow-dot" />
               Patient Demographics
             </span>
-            {patient && (
+            {prescription.patient && (
               <button
                 type="button"
-                onClick={() => onInspect(patient)}
-                className="text-xs text-teal-700 hover:underline flex items-center gap-1"
+                // No raw patient FHIR in new API response unless we fetch the full bundle
+                // We'll leave onInspect empty here or omit the button since it's an API model
+                onClick={() => {}}
+                className="text-xs text-teal-700 flex items-center gap-1 opacity-50 cursor-not-allowed"
+                title="Demographic context only"
               >
                 <FileCode className="h-3 w-3" />
-                <span>FHIR</span>
+                <span>Context</span>
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-500 to-moss-600 font-serif text-lg text-paper">
-              RK
+              {patientName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'RK'}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -205,7 +198,7 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
                 </Badge>
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-                <span>54 · Male</span>
+                <span>{ageString} · {gender}</span>
                 <span>•</span>
                 <span className="font-mono text-[11px]">{abhaId}</span>
               </div>
@@ -220,10 +213,10 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
               <span className="eyebrow-dot" />
               Consultation Encounter
             </span>
-            {encounter && (
+            {Boolean(prescription.encounter) && (
               <button
                 type="button"
-                onClick={() => onInspect(encounter)}
+                onClick={() => onInspect(prescription.encounter)}
                 className="text-xs text-teal-700 hover:underline flex items-center gap-1"
               >
                 <FileCode className="h-3 w-3" />
