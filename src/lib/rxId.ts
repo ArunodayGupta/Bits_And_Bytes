@@ -1,5 +1,11 @@
 import type { FhirBundle, FhirMedicationRequest, FhirPatient, FhirPractitioner, FhirOrganization, FhirEncounter } from './fhir/types';
 
+const nodeProcess = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+
+export const RX_TOKEN_SYSTEM: string =
+  nodeProcess?.env?.RX_TOKEN_SYSTEM ||
+  'https://phr-demo.example.org/rx-token';
+
 export interface RxIdInputs {
   hospital?: string;
   doctor?: string;
@@ -18,6 +24,10 @@ const COMMON_HOSPITAL_WORDS = new Set([
   'centers',
   'medical',
   'healthcare',
+  'diagnostics',
+  'diagnostic',
+  'pvt',
+  'ltd',
   'health',
   'institute',
   'institutes',
@@ -152,18 +162,17 @@ export function extractDoctorInitials(doctorName?: string): string {
 
 /**
  * Format day and month as DDMM zero-padded.
+ * Uses string-based parsing on the first 10 characters to guarantee timezone safety.
  */
 export function formatDayMonth(dateString?: string): string {
-  if (!dateString) return '0101';
-  try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return '0101';
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+  if (!dateString || typeof dateString !== 'string') return '0101';
+  const match = dateString.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const month = match[2];
+    const day = match[3];
     return `${day}${month}`;
-  } catch {
-    return '0101';
   }
+  return '0101';
 }
 
 /**
@@ -191,12 +200,36 @@ export function extractPatientNameCode(patientName?: string): string {
 /**
  * Deterministically generates a speakable prescription ID (Rx-ID).
  * Format: HOS-DD-DDMM-PATI (e.g. APL-RR-1410-RAME)
+ * Supports both positional arguments: (hospital, doctor, date, patient)
+ * and object argument: ({ hospital, doctor, date, patient })
  */
-export function generateSpeakableRxId(inputs: RxIdInputs): string {
-  const hos = abbreviateHospital(inputs.hospital);
-  const dd = extractDoctorInitials(inputs.doctor);
-  const ddmm = formatDayMonth(inputs.date);
-  const pati = extractPatientNameCode(inputs.patient);
+export function generateSpeakableRxId(
+  hospitalOrInputs?: string | RxIdInputs,
+  doctorName?: string,
+  date?: string,
+  patientName?: string
+): string {
+  let hospital = '';
+  let doc = '';
+  let dStr = '';
+  let patient = '';
+
+  if (hospitalOrInputs && typeof hospitalOrInputs === 'object') {
+    hospital = hospitalOrInputs.hospital || '';
+    doc = hospitalOrInputs.doctor || '';
+    dStr = hospitalOrInputs.date || '';
+    patient = hospitalOrInputs.patient || '';
+  } else {
+    hospital = typeof hospitalOrInputs === 'string' ? hospitalOrInputs : '';
+    doc = doctorName || '';
+    dStr = date || '';
+    patient = patientName || '';
+  }
+
+  const hos = abbreviateHospital(hospital);
+  const dd = extractDoctorInitials(doc);
+  const ddmm = formatDayMonth(dStr);
+  const pati = extractPatientNameCode(patient);
 
   return `${hos}-${dd}-${ddmm}-${pati}`;
 }
@@ -237,8 +270,58 @@ export function createCollisionRegistry(): CollisionRegistry {
 }
 
 /**
- * Deterministic collision-safe generator for a bundle.
- * If two different MedicationRequests produce the same ID, appends a single-character suffix (A, B, ...)
+ * Allocates or resolves an Rx-ID with encounter-level reuse and collision resolution.
+ * - If the candidate belongs to the SAME encounter/prescription, reuse it without suffix.
+ * - If the candidate belongs to a DIFFERENT encounter/prescription, append suffix (A, B, ...)
+ */
+export function allocateRxId(
+  candidate: string,
+  existingRegistry: Map<string, string> | CollisionRegistry | Record<string, string>,
+  encounterId?: string
+): string {
+  // Support both Map<rxId, encounterId> and CollisionRegistry
+  if ('idToMedicationRequestId' in existingRegistry) {
+    const reg = existingRegistry as CollisionRegistry;
+    return registerAndGetUniqueRxId(candidate, encounterId || 'default', reg);
+  }
+
+  const map = existingRegistry as Map<string, string>;
+
+  // Check if candidate already registered
+  if (!map.has(candidate)) {
+    if (encounterId) {
+      map.set(candidate, encounterId);
+    }
+    return candidate;
+  }
+
+  // Already exists: check if same encounter
+  const registeredEncounter = map.get(candidate);
+  if (encounterId && registeredEncounter === encounterId) {
+    return candidate; // Shared across the same encounter!
+  }
+
+  // Collision with a different encounter -> append suffix A, B, ...
+  let suffixCode = 65; // 'A'
+  while (suffixCode <= 90) {
+    const suffixed = `${candidate}${String.fromCharCode(suffixCode)}`;
+    if (!map.has(suffixed)) {
+      if (encounterId) {
+        map.set(suffixed, encounterId);
+      }
+      return suffixed;
+    }
+    if (encounterId && map.get(suffixed) === encounterId) {
+      return suffixed;
+    }
+    suffixCode++;
+  }
+
+  return `${candidate}Z`;
+}
+
+/**
+ * Legacy deterministic collision-safe generator for a bundle using MedicationRequestId.
  */
 export function registerAndGetUniqueRxId(
   baseId: string,
@@ -283,13 +366,11 @@ export function injectRxIdsIntoBundle(bundle: FhirBundle): {
     return { bundle: clonedBundle, registry };
   }
 
-  // Lookups for demographics and encounters
   let patientName = 'Ramesh';
   const practitionerMap = new Map<string, string>();
   const orgMap = new Map<string, string>();
   const encounterMap = new Map<string, FhirEncounter>();
 
-  // First pass: collect reference metadata
   for (const entry of clonedBundle.entry) {
     const res = entry.resource;
     if (res.resourceType === 'Patient') {
@@ -316,19 +397,16 @@ export function injectRxIdsIntoBundle(bundle: FhirBundle): {
     }
   }
 
-  // Second pass: inject into MedicationRequest
   for (const entry of clonedBundle.entry) {
     if (entry.resource.resourceType === 'MedicationRequest') {
       const med = entry.resource as FhirMedicationRequest;
 
-      // Resolve doctor
       let doctorName = med.requester?.display;
       if (!doctorName && med.requester?.reference) {
         doctorName = practitionerMap.get(med.requester.reference);
       }
 
-      // Resolve hospital via encounter
-      let hospitalName = 'Apollo Hospitals';
+      let hospitalName = 'Apollo Hospital';
       if (med.encounter?.display) {
         hospitalName = med.encounter.display;
       } else if (med.encounter?.reference) {
@@ -342,29 +420,36 @@ export function injectRxIdsIntoBundle(bundle: FhirBundle): {
 
       const dateStr = med.authoredOn || new Date().toISOString();
 
-      const baseRxId = generateSpeakableRxId({
-        hospital: hospitalName,
-        doctor: doctorName,
-        date: dateStr,
-        patient: patientName,
-      });
+      const baseRxId = generateSpeakableRxId(
+        hospitalName,
+        doctorName,
+        dateStr,
+        patientName
+      );
 
       const uniqueRxId = registerAndGetUniqueRxId(baseRxId, med.id, registry);
 
-      // Inject into identifier preserving existing identifiers
       const existingIdentifiers = med.identifier || [];
       const hasRxToken = existingIdentifiers.some(
-        (id) => id.system === 'https://abdm.gov.in/rx-token'
+        (id) => id.system === RX_TOKEN_SYSTEM || id.system === 'https://abdm.gov.in/rx-token'
       );
 
       if (!hasRxToken) {
         med.identifier = [
           ...existingIdentifiers,
           {
-            system: 'https://abdm.gov.in/rx-token',
+            system: RX_TOKEN_SYSTEM,
             value: uniqueRxId,
           },
         ];
+      }
+
+      // groupIdentifier for FHIR R4 requests belonging to the same prescription
+      if (!med.groupIdentifier) {
+        med.groupIdentifier = {
+          system: RX_TOKEN_SYSTEM,
+          value: uniqueRxId,
+        };
       }
     }
   }

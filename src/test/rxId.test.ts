@@ -9,6 +9,8 @@ import {
   createCollisionRegistry,
   registerAndGetUniqueRxId,
   injectRxIdsIntoBundle,
+  allocateRxId,
+  RX_TOKEN_SYSTEM,
 } from '../lib/rxId';
 import type { FhirBundle } from '../lib/fhir/types';
 
@@ -128,9 +130,43 @@ describe('Speakable Rx-ID generation and collision handling', () => {
       expect(injectedMed.identifier.length).toBe(2);
       expect(
         injectedMed.identifier.some(
-          (id: any) => id.system === 'https://abdm.gov.in/rx-token'
+          (id: any) => id.system === RX_TOKEN_SYSTEM || id.system === 'https://phr-demo.example.org/rx-token'
         )
       ).toBe(true);
+    });
+
+    it('allocateRxId reuses ID for same encounter and appends suffix for different encounters', () => {
+      const registry = new Map<string, string>();
+      const candidate = 'APL-RR-1410-RAME';
+
+      // First request from encounter-1
+      const id1 = allocateRxId(candidate, registry, 'encounter-1');
+      expect(id1).toBe('APL-RR-1410-RAME');
+
+      // Second medication request from SAME encounter-1 -> shares the ID!
+      const id2 = allocateRxId(candidate, registry, 'encounter-1');
+      expect(id2).toBe('APL-RR-1410-RAME');
+
+      // Request with identical candidate from a DIFFERENT encounter-2 -> collision suffix!
+      const id3 = allocateRxId(candidate, registry, 'encounter-2');
+      expect(id3).toBe('APL-RR-1410-RAMEA');
+
+      // Another medication from encounter-2 -> reuses the suffixed ID
+      const id4 = allocateRxId(candidate, registry, 'encounter-2');
+      expect(id4).toBe('APL-RR-1410-RAMEA');
+
+      // Yet another encounter-3 -> appends suffix B
+      const id5 = allocateRxId(candidate, registry, 'encounter-3');
+      expect(id5).toBe('APL-RR-1410-RAMEB');
+    });
+
+    it('guarantees timezone-safe date extraction near midnight UTC without shifting day', () => {
+      // 23:59:59 UTC on 14th should NOT shift to 15th (or 13th)
+      expect(formatDayMonth('2024-10-14T23:59:59Z')).toBe('1410');
+      // 00:00:01 UTC on 14th should be 14th
+      expect(formatDayMonth('2024-10-14T00:00:01Z')).toBe('1410');
+      // Date only
+      expect(formatDayMonth('2024-10-14')).toBe('1410');
     });
   });
 });

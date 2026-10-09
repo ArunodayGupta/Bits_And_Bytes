@@ -14,8 +14,9 @@ Built with the **"Verdant Clinical"** aesthetic: botanical editorial warmth, Ins
 - **Typography**: Google Fonts (*Instrument Serif*, *Hanken Grotesk*, *IBM Plex Mono*)
 - **Icons**: `lucide-react`
 - **Charts**: `recharts` for longitudinal biomarker trend sparklines
-- **Testing**: `vitest` unit test suite (21 passing tests)
-- **Architecture**: 100% Client-Side. No backend, no cookies, no localStorage for essential health data. Fully works offline.
+- **Testing**: `vitest` unit test suite (33 passing unit tests + 9 integration tests)
+- **Database & Data Layer**: Supabase (PostgreSQL 15), atomic FHIR R4 ingestion RPC, Row-Level Security (RLS) enforcement, speakable Rx-ID registry, and clinical care gap signals. See [DATA_LAYER.md](file:///c:/Users/piyus/OneDrive/Desktop/BitsAndBytes/docs/DATA_LAYER.md) for full technical documentation.
+- **Architecture**: Dual-mode — supports zero-trust 100% offline demo mode as well as full Supabase PostgreSQL cloud/local database backing.
 
 ---
 
