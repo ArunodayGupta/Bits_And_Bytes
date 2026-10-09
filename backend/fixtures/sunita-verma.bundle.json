@@ -1,0 +1,516 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-op-consultation-sunita",
+  "meta": {
+    "versionId": "1",
+    "lastUpdated": "2024-08-12T09:30:00.000+05:30",
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/OPConsultRecord"
+    ]
+  },
+  "type": "collection",
+  "timestamp": "2024-08-12T09:30:00.000+05:30",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:patient-sunita-verma",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-sunita-verma",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Patient"]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MR",
+                  "display": "Medical record number"
+                }
+              ]
+            },
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "91-4567-8901-2345"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "text": "Sunita Verma",
+            "family": "Verma",
+            "given": ["Sunita"]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+91 98451 99887",
+            "use": "mobile"
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1986-08-15",
+        "address": [
+          {
+            "use": "home",
+            "line": ["12 Rosewood Enclave", "Kothrud"],
+            "city": "Pune",
+            "state": "Maharashtra",
+            "postalCode": "411038",
+            "country": "India"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:practitioner-priya-nair",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "practitioner-priya-nair",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Practitioner"]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MD",
+                  "display": "Medical License number"
+                }
+              ]
+            },
+            "system": "https://mciindia.org",
+            "value": "MCI-2012-77119"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "text": "Dr. Priya Nair",
+            "family": "Nair",
+            "given": ["Priya"],
+            "prefix": ["Dr."]
+          }
+        ],
+        "qualification": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "418112009",
+                  "display": "Pulmonary medicine"
+                }
+              ],
+              "text": "MBBS, MD (Pulmonology)"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:org-medcare-clinic",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "org-medcare-clinic",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Organization"]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PRN",
+                  "display": "Provider number"
+                }
+              ]
+            },
+            "system": "https://facility.ndhm.gov.in",
+            "value": "IN-MH-HCF-0099"
+          }
+        ],
+        "name": "MedCare Specialty Clinic",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+91 20 2544 1122"
+          }
+        ],
+        "address": [
+          {
+            "line": ["Shop 4-6, Silver Plaza, Karve Road"],
+            "city": "Pune",
+            "state": "Maharashtra",
+            "postalCode": "411004",
+            "country": "India"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:enc-consult-sunita-2024",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "enc-consult-sunita-2024",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Encounter"]
+        },
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB",
+          "display": "ambulatory"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "185349003",
+                "display": "Pulmonology outpatient consultation"
+              }
+            ],
+            "text": "Respiratory medicine evaluation for chronic wheeze"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:practitioner-priya-nair",
+              "display": "Dr. Priya Nair"
+            }
+          }
+        ],
+        "period": {
+          "start": "2024-08-12T09:30:00+05:30",
+          "end": "2024-08-12T10:00:00+05:30"
+        },
+        "serviceProvider": {
+          "reference": "urn:uuid:org-medcare-clinic",
+          "display": "MedCare Specialty Clinic"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cond-asthma-sunita",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond-asthma-sunita",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "195967001",
+              "display": "Asthma"
+            }
+          ],
+          "text": "Bronchial Asthma"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024"
+        },
+        "recordedDate": "2024-08-12T09:30:00+05:30"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cond-rhinitis-sunita",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond-rhinitis-sunita",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "61582004",
+              "display": "Allergic rhinitis"
+            }
+          ],
+          "text": "Allergic Rhinitis"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024"
+        },
+        "recordedDate": "2024-08-12T09:30:00+05:30"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-pefr-sunita",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-pefr-sunita",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "exam",
+                "display": "Exam"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "33452-4",
+              "display": "Peak expiratory flow rate"
+            }
+          ],
+          "text": "Peak Expiratory Flow Rate (PEFR)"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024"
+        },
+        "effectiveDateTime": "2024-08-12T09:40:00+05:30",
+        "valueQuantity": {
+          "value": 340,
+          "unit": "L/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "L/min"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 380,
+              "unit": "L/min"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-spo2-sunita",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-spo2-sunita",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "59408-5",
+              "display": "Oxygen saturation in Arterial blood by Pulse oximetry"
+            }
+          ],
+          "text": "SpO2 (Pulse Oximetry)"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024"
+        },
+        "effectiveDateTime": "2024-08-12T09:35:00+05:30",
+        "valueQuantity": {
+          "value": 97,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:medreq-sunita-inhaler",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medreq-sunita-inhaler",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "703774003",
+              "display": "Budesonide 200 mcg / Formoterol 6 mcg inhaler"
+            }
+          ],
+          "text": "Budesonide 200 mcg + Formoterol 6 mcg Inhaler"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024",
+          "display": "MedCare Specialty Clinic"
+        },
+        "authoredOn": "2024-08-12T09:30:00+05:30",
+        "requester": {
+          "reference": "urn:uuid:practitioner-priya-nair",
+          "display": "Dr. Priya Nair"
+        },
+        "dosageInstruction": [
+          {
+            "text": "Inhale 2 puffs twice daily; rinse mouth with water after inhalation"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:medreq-sunita-montelukast",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medreq-sunita-montelukast",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "324546006",
+              "display": "Montelukast 10 mg oral tablet"
+            }
+          ],
+          "text": "Montelukast 10 mg oral tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024",
+          "display": "MedCare Specialty Clinic"
+        },
+        "authoredOn": "2024-08-12T09:30:00+05:30",
+        "requester": {
+          "reference": "urn:uuid:practitioner-priya-nair",
+          "display": "Dr. Priya Nair"
+        },
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet (10 mg) orally once daily at night"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:medreq-sunita-levocetirizine",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medreq-sunita-levocetirizine",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "411531001",
+              "display": "Levocetirizine hydrochloride 5 mg oral tablet"
+            }
+          ],
+          "text": "Levocetirizine 5 mg oral tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-sunita-verma",
+          "display": "Sunita Verma"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-sunita-2024",
+          "display": "MedCare Specialty Clinic"
+        },
+        "authoredOn": "2024-08-12T09:30:00+05:30",
+        "requester": {
+          "reference": "urn:uuid:practitioner-priya-nair",
+          "display": "Dr. Priya Nair"
+        },
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet (5 mg) orally once daily as needed for allergic rhinitis flare-ups"
+          }
+        ]
+      }
+    }
+  ]
+}

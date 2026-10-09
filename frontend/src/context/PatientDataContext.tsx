@@ -8,7 +8,7 @@ import type {
 import { fetchPatientData } from '@/lib/fhir/fetchPatientData';
 import { buildTimeline } from '@/lib/fhir/buildTimeline';
 import { injectRxIdsIntoBundle } from '@/lib/rxId';
-import offlineBundleData from '@/data/op-consultation.json';
+import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE, type PatientProfile } from '@/data/patients';
 import {
   PatientDataContext,
   type DataSourceType,
@@ -19,17 +19,18 @@ import {
 export type { DataSourceType, SourceStatusState, PatientDataContextValue } from './contextDefinition';
 
 // Initial offline bootstrap to ensure zero flash on initial render
-const initialRaw = offlineBundleData as unknown as FhirBundle;
+const initialRaw = DEFAULT_PATIENT_PROFILE.bundle;
 const initialPrepared = injectRxIdsIntoBundle(initialRaw);
 const initialPatient =
   (initialPrepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient) ||
   null;
 
 export function PatientDataProvider({ children }: { children: React.ReactNode }) {
+  const [currentPatientId, setCurrentPatientId] = useState<string>(DEFAULT_PATIENT_PROFILE.id);
   const [source, setSourceState] = useState<DataSourceType>('offline');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusState, setStatusState] = useState<SourceStatusState>('offline');
-  const [statusText, setStatusText] = useState<string>('Source: Offline bundle');
+  const [statusText, setStatusText] = useState<string>(`Source: Offline (${DEFAULT_PATIENT_PROFILE.name})`);
   const [rawBundle, setRawBundle] = useState<FhirBundle | null>(initialRaw);
   const [bundle, setBundle] = useState<FhirBundle | null>(initialPrepared.bundle);
   const [patient, setPatient] = useState<FhirPatient | null>(initialPatient);
@@ -40,14 +41,21 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
   const clearToast = useCallback(() => setToastMessage(null), []);
 
-  const loadData = useCallback(async (requestedSource: DataSourceType) => {
+  const loadData = useCallback(async (requestedSource: DataSourceType, patientId?: string) => {
     setIsLoading(true);
     let didFallback = false;
+    const targetPatientId = patientId ?? currentPatientId;
+    const profile = PATIENT_PROFILES.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
 
     try {
-      const fetchedBundle = await fetchPatientData(requestedSource, () => {
-        didFallback = true;
-      });
+      let fetchedBundle: FhirBundle;
+      if (requestedSource === 'offline') {
+        fetchedBundle = JSON.parse(JSON.stringify(profile.bundle)) as FhirBundle;
+      } else {
+        fetchedBundle = await fetchPatientData(requestedSource, () => {
+          didFallback = true;
+        });
+      }
 
       // Inject deterministic speakable Rx-IDs into all MedicationRequests
       const { bundle: preparedBundle } = injectRxIdsIntoBundle(fetchedBundle);
@@ -76,7 +84,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
         }
       } else {
         setStatusState('offline');
-        setStatusText('Source: Offline bundle');
+        setStatusText(`Source: Offline (${profile.name})`);
       }
     } catch (err) {
       console.error('Critical loading error:', err);
@@ -86,7 +94,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPatientId]);
 
   const setSource = useCallback(
     (newSource: DataSourceType) => {
@@ -94,6 +102,23 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       void loadData(newSource);
     },
     [loadData]
+  );
+
+  const setPatientId = useCallback(
+    (patientId: string) => {
+      setCurrentPatientId(patientId);
+      const profile = PATIENT_PROFILES.find((p) => p.id === patientId) || DEFAULT_PATIENT_PROFILE;
+      const prepared = injectRxIdsIntoBundle(profile.bundle);
+      setRawBundle(profile.bundle);
+      setBundle(prepared.bundle);
+      const pResource = prepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient;
+      setPatient(pResource || null);
+      setSelectedResource(null);
+      if (source === 'offline') {
+        setStatusText(`Source: Offline (${profile.name})`);
+      }
+    },
+    [source]
   );
 
   const reload = useCallback(async () => {
@@ -167,6 +192,9 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     toastMessage,
     clearToast,
     reload,
+    currentPatientId,
+    setPatientId,
+    availablePatients: PATIENT_PROFILES,
   };
 
   return (

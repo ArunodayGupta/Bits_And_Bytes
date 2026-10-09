@@ -2,10 +2,12 @@ import { useMemo } from 'react';
 import { usePatientData } from '@/context/usePatientData';
 import { Timeline } from '@/components/Timeline';
 import { ResourceSheet } from '@/components/ResourceSheet';
+import { PatientSwitcher } from '@/components/PatientSwitcher';
+import { CareGapBanner } from '@/components/CareGapBanner';
 import { Calendar, Activity, Pill, Shield } from 'lucide-react';
 
 export const PatientView: React.FC = () => {
-  const { bundle, selectedResource, setSelectedResource } = usePatientData();
+  const { bundle, patient, selectedResource, setSelectedResource } = usePatientData();
 
   // Dynamic statistics from bundle
   const stats = useMemo(() => {
@@ -25,8 +27,13 @@ export const PatientView: React.FC = () => {
     return { encounters, conditions, medications, labs };
   }, [bundle]);
 
+  const patientName = patient?.name?.[0]?.text || 'Patient';
+
   return (
-    <div className="flex flex-col gap-8 pb-16 animate-fade-up">
+    <div className="flex flex-col gap-6 pb-16 animate-fade-up">
+      {/* Patient Switcher for Testing Multiple Patients & Scenarios */}
+      <PatientSwitcher />
+
       {/* Verdant Clinical Hero Header Band */}
       <section className="relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 p-8 sm:p-12 shadow-soft">
         {/* Organic blurred blobs */}
@@ -37,19 +44,19 @@ export const PatientView: React.FC = () => {
           <div className="mb-4">
             <span className="eyebrow-pill">
               <span className="eyebrow-dot" />
-              Your Health Record
+              Longitudinal Health Record · {patientName}
             </span>
           </div>
 
           <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal text-ink leading-tight mb-4">
-            Your history, <span className="italic">in one timeline</span>
+            Clinical history, <span className="italic">in one timeline</span>
           </h1>
 
           <p className="text-base sm:text-lg text-ink-soft leading-relaxed max-w-2xl mb-8">
-            Consolidated outpatient consultations, diagnoses, lab trends and prescriptions from across Apollo Hospitals, MedCare Clinic, and Aarthi Diagnostics in compliance with NRCeS FHIR R4.
+            Consolidated outpatient consultations, diagnoses, lab trends and prescriptions in compliance with NRCeS / ABDM FHIR R4 standard.
           </p>
 
-          {/* 3 Frosted Glass Stat Cards */}
+          {/* 4 Frosted Glass Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
               <div className="flex items-center gap-2 text-ink-soft text-xs mb-1">
@@ -59,7 +66,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.encounters}
               </div>
-              <span className="text-[11px] text-ink-soft">2021 – 2026</span>
+              <span className="text-[11px] text-ink-soft">NRCeS Validated</span>
             </div>
 
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
@@ -70,7 +77,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.conditions}
               </div>
-              <span className="text-[11px] text-ink-soft">SNOMED coded</span>
+              <span className="text-[11px] text-ink-soft">SNOMED CT</span>
             </div>
 
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
@@ -81,7 +88,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.medications}
               </div>
-              <span className="text-[11px] text-ink-soft">Rx-ID enabled</span>
+              <span className="text-[11px] text-ink-soft">Rx-ID Enabled</span>
             </div>
 
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
@@ -97,6 +104,9 @@ export const PatientView: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Clinical Care Gap Banner */}
+      <CareGapBanner />
 
       {/* Main Longitudinal Timeline */}
       <section>

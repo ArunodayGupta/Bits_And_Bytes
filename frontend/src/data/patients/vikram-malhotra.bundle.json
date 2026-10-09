@@ -1,0 +1,704 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-op-consultation-vikram",
+  "meta": {
+    "versionId": "1",
+    "lastUpdated": "2024-07-22T11:00:00.000+05:30",
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/OPConsultRecord"
+    ]
+  },
+  "type": "collection",
+  "timestamp": "2024-07-22T11:00:00.000+05:30",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:patient-vikram-malhotra",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-vikram-malhotra",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Patient"]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MR",
+                  "display": "Medical record number"
+                }
+              ]
+            },
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "91-5678-9012-3456"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "text": "Vikram Malhotra",
+            "family": "Malhotra",
+            "given": ["Vikram"]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+91 98105 44321",
+            "use": "mobile"
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1967-01-20",
+        "address": [
+          {
+            "use": "home",
+            "line": ["Flat 5B, Pocket A", "Mayur Vihar Phase 1"],
+            "city": "New Delhi",
+            "state": "Delhi",
+            "postalCode": "110091",
+            "country": "India"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:practitioner-rajesh-rao",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "practitioner-rajesh-rao",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Practitioner"]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MD",
+                  "display": "Medical License number"
+                }
+              ]
+            },
+            "system": "https://mciindia.org",
+            "value": "MCI-2010-88341"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "text": "Dr. Rajesh Rao",
+            "family": "Rao",
+            "given": ["Rajesh"],
+            "prefix": ["Dr."]
+          }
+        ],
+        "qualification": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "394589003",
+                  "display": "Nephrology"
+                }
+              ],
+              "text": "MBBS, MD (Medicine), DM (Nephrology)"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:org-aiims-delhi",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "org-aiims-delhi",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Organization"]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PRN",
+                  "display": "Provider number"
+                }
+              ]
+            },
+            "system": "https://facility.ndhm.gov.in",
+            "value": "IN-DL-HCF-0001"
+          }
+        ],
+        "name": "AIIMS New Delhi",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+91 11 2658 8500"
+          }
+        ],
+        "address": [
+          {
+            "line": ["Ansari Nagar East"],
+            "city": "New Delhi",
+            "state": "Delhi",
+            "postalCode": "110029",
+            "country": "India"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:enc-consult-vikram-2024",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "enc-consult-vikram-2024",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Encounter"]
+        },
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB",
+          "display": "ambulatory"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "185349003",
+                "display": "Nephrology outpatient consultation"
+              }
+            ],
+            "text": "Diabetic kidney disease review and eGFR surveillance"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:practitioner-rajesh-rao",
+              "display": "Dr. Rajesh Rao"
+            }
+          }
+        ],
+        "period": {
+          "start": "2024-07-22T11:00:00+05:30",
+          "end": "2024-07-22T11:45:00+05:30"
+        },
+        "serviceProvider": {
+          "reference": "urn:uuid:org-aiims-delhi",
+          "display": "AIIMS New Delhi"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cond-t2dm-vikram",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond-t2dm-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "44054006",
+              "display": "Type 2 diabetes mellitus"
+            }
+          ],
+          "text": "Type 2 Diabetes Mellitus"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "recordedDate": "2024-07-22T11:00:00+05:30"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cond-ckd-vikram",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond-ckd-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "431855005",
+              "display": "Chronic kidney disease stage 2"
+            }
+          ],
+          "text": "Chronic Kidney Disease Stage 2"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "recordedDate": "2024-07-22T11:00:00+05:30"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cond-nephropathy-vikram",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond-nephropathy-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Condition"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "127013003",
+              "display": "Diabetic nephropathy"
+            }
+          ],
+          "text": "Diabetic Nephropathy"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "recordedDate": "2024-07-22T11:00:00+05:30"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-creatinine-vikram",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-creatinine-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2160-0",
+              "display": "Creatinine [Mass/volume] in Serum or Plasma"
+            }
+          ],
+          "text": "Serum Creatinine"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "effectiveDateTime": "2024-07-22T08:30:00+05:30",
+        "valueQuantity": {
+          "value": 1.4,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 0.7,
+              "unit": "mg/dL"
+            },
+            "high": {
+              "value": 1.2,
+              "unit": "mg/dL"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-egfr-vikram",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-egfr-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "33914-3",
+              "display": "Glomerular filtration rate/1.73 sq M.predicted [Volume Rate/Area] in Serum or Plasma by Creatinine-based formula (CKD-EPI)"
+            }
+          ],
+          "text": "Estimated GFR (CKD-EPI)"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "effectiveDateTime": "2024-07-22T08:30:00+05:30",
+        "valueQuantity": {
+          "value": 62,
+          "unit": "mL/min/1.73m2",
+          "system": "http://unitsofmeasure.org",
+          "code": "mL/min/{1.73_m2}"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 90,
+              "unit": "mL/min/1.73m2"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-uacr-vikram",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-uacr-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "9318-7",
+              "display": "Albumin/Creatinine [Mass Ratio] in Urine"
+            }
+          ],
+          "text": "Urine Albumin-to-Creatinine Ratio (UACR)"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "effectiveDateTime": "2024-07-22T08:30:00+05:30",
+        "valueQuantity": {
+          "value": 180,
+          "unit": "mg/g",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/g"
+        },
+        "referenceRange": [
+          {
+            "high": {
+              "value": 30,
+              "unit": "mg/g"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-bp-vikram",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-bp-vikram",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel with all children optional"
+            }
+          ],
+          "text": "Blood Pressure Panel"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024"
+        },
+        "effectiveDateTime": "2024-07-22T11:05:00+05:30",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 138,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 86,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:medreq-vikram-empagliflozin",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medreq-vikram-empagliflozin",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "702677009",
+              "display": "Empagliflozin 10 mg oral tablet"
+            }
+          ],
+          "text": "Empagliflozin 10 mg oral tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024",
+          "display": "AIIMS New Delhi"
+        },
+        "authoredOn": "2024-07-22T11:00:00+05:30",
+        "requester": {
+          "reference": "urn:uuid:practitioner-rajesh-rao",
+          "display": "Dr. Rajesh Rao"
+        },
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet (10 mg) orally once daily in the morning before breakfast"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:medreq-vikram-linagliptin",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medreq-vikram-linagliptin",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "429707008",
+              "display": "Linagliptin 5 mg oral tablet"
+            }
+          ],
+          "text": "Linagliptin 5 mg oral tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024",
+          "display": "AIIMS New Delhi"
+        },
+        "authoredOn": "2024-07-22T11:00:00+05:30",
+        "requester": {
+          "reference": "urn:uuid:practitioner-rajesh-rao",
+          "display": "Dr. Rajesh Rao"
+        },
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet (5 mg) orally once daily with or without food"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:medreq-vikram-telmisartan",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medreq-vikram-telmisartan",
+        "meta": {
+          "profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "386867008",
+              "display": "Telmisartan 40 mg oral tablet"
+            }
+          ],
+          "text": "Telmisartan 40 mg oral tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:patient-vikram-malhotra",
+          "display": "Vikram Malhotra"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-consult-vikram-2024",
+          "display": "AIIMS New Delhi"
+        },
+        "authoredOn": "2024-07-22T11:00:00+05:30",
+        "requester": {
+          "reference": "urn:uuid:practitioner-rajesh-rao",
+          "display": "Dr. Rajesh Rao"
+        },
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet (40 mg) orally once daily in the morning for renal protection and blood pressure"
+          }
+        ]
+      }
+    }
+  ]
+}
