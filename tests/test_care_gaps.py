@@ -11,8 +11,8 @@ from app.services.care_gaps import (
     extract_bp_readings,
     has_hypertension,
 )
+from app.utils.db import get_clinical_resources_for_care_gaps
 
-FIXTURES_DIR = Path(__file__).resolve().parent.parent / "backend" / "fixtures"
 SHARED_VECTORS_PATH = Path(__file__).resolve().parent.parent / "shared" / "test-vectors" / "care-gaps.json"
 
 
@@ -172,25 +172,10 @@ def test_shared_test_vectors():
         assert actual_codes == expected_codes, f"Failed on '{desc}': expected {expected_codes}, got {actual_codes}"
 
 
-def test_seeded_ramesh_kumar_fixture_care_gaps():
-    """Verify seeded Ramesh Kumar bundle triggers the three expected care gaps."""
-    fixture_path = FIXTURES_DIR / "ramesh-kumar.bundle.json"
-    assert fixture_path.exists()
-    bundle = json.loads(fixture_path.read_text(encoding="utf-8"))
-
-    resources = []
-    for entry in bundle.get("entry", []):
-        res = entry.get("resource", {})
-        rtype = res.get("resourceType")
-        if rtype in ("Condition", "Observation"):
-            resources.append({
-                "id": res.get("id"),
-                "resource_type": rtype,
-                "fhir_id": res.get("id"),
-                "event_date": res.get("effectiveDateTime") or res.get("recordedDate"),
-                "summary_title": res.get("code", {}).get("text") or "Clinical Item",
-                "raw_json": res,
-            })
+def test_seeded_ramesh_kumar_care_gaps():
+    """Verify seeded Ramesh Kumar clinical facts trigger the three expected care gaps."""
+    resources = get_clinical_resources_for_care_gaps("91-1234-5678-9012")
+    assert len(resources) >= 2
 
     gaps = evaluate_care_gaps(resources, as_of="2024-10-14T12:00:00+05:30")
     codes = [g.code for g in gaps]

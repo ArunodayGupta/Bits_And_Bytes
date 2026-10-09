@@ -14,7 +14,6 @@ FRONTEND_PUBLIC_DIR = ROOT_DIR / "frontend" / "public"
 
 
 def create_sample_lab_report():
-    FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
     FRONTEND_PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
 
     # 800 x 600 clean medical report layout
@@ -73,12 +72,9 @@ def create_sample_lab_report():
         fill=(148, 163, 184),
     )
 
-    out_fixture = FIXTURES_DIR / "sample-lab-report.png"
     out_public = FRONTEND_PUBLIC_DIR / "sample-lab-report.png"
-
-    image.save(out_fixture, "PNG")
-    shutil.copy2(out_fixture, out_public)
-    print(f"Generated synthetic report image at:\n  - {out_fixture}\n  - {out_public}")
+    image.save(out_public, "PNG")
+    print(f"Generated synthetic report image at: {out_public}")
 
 
 if __name__ == "__main__":

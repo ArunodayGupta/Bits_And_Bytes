@@ -56,3 +56,16 @@ def get_care_gaps(
     gaps = evaluate_care_gaps(resources, as_of=as_of)
     return gaps
 
+
+@router.get("/{abha_id}/details")
+def get_patient_details(abha_id: str):
+    """Doctor endpoint: Retrieve full clinical details (demographics, conditions, vitals, prescriptions) for patient review."""
+    from app.utils.db import get_patient_details_for_doctor
+    details = get_patient_details_for_doctor(abha_id)
+    if not details:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"code": "PATIENT_NOT_FOUND", "message": f"Patient {abha_id} not found or not a demo record"}},
+        )
+    return details
+

@@ -25,7 +25,14 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent / "backend" / "fixtures"
+DEFAULT_DEMO_PATIENTS: list[dict[str, str]] = [
+    {"abha_id": "91-1234-5678-9012", "display_name": "Ramesh Kumar"},
+    {"abha_id": "91-2345-6789-0123", "display_name": "Priya Sharma"},
+    {"abha_id": "91-3456-7890-1234", "display_name": "Arun Patel"},
+    {"abha_id": "91-4567-8901-2345", "display_name": "Sunita Verma"},
+    {"abha_id": "91-5678-9012-3456", "display_name": "Vikram Malhotra"},
+    {"abha_id": "91-6789-0123-4567", "display_name": "Ananya Deshmukh"},
+]
 
 # In-memory session store for confirmed scans in offline or test mode
 _OFFLINE_SCAN_STORE: dict[str, list[dict[str, Any]]] = {}
@@ -88,23 +95,9 @@ def get_demo_patients() -> list[dict[str, str]]:
         except Exception:
             pass
 
-    # Fallback to local fixtures
+    # In-memory demo patients fallback
     log_access("demo_patients", "all_fallback", True)
-    results = []
-    if FIXTURES_DIR.exists():
-        for f in sorted(FIXTURES_DIR.glob("*.bundle.json")):
-            try:
-                bundle = json.loads(f.read_text(encoding="utf-8"))
-                for entry in bundle.get("entry", []):
-                    res = entry.get("resource", {})
-                    if res.get("resourceType") == "Patient":
-                        ident = res.get("identifier", [{}])[0].get("value")
-                        name = res.get("name", [{}])[0].get("text") or "Demo Patient"
-                        if ident:
-                            results.append({"abha_id": ident, "display_name": name})
-            except Exception:
-                continue
-    return results or [{"abha_id": "91-1234-5678-9012", "display_name": "Ramesh Kumar"}]
+    return DEFAULT_DEMO_PATIENTS
 
 
 def is_demo_patient(abha_id: str) -> bool:
@@ -122,9 +115,7 @@ def is_demo_patient(abha_id: str) -> bool:
         except Exception:
             pass
 
-    # Check local fixtures
-    demo_patients = get_demo_patients()
-    return any(p["abha_id"] == norm_abha for p in demo_patients)
+    return any(p["abha_id"] == norm_abha for p in DEFAULT_DEMO_PATIENTS)
 
 
 def get_clinical_resources_for_care_gaps(abha_id: str) -> list[dict[str, Any]]:
@@ -154,32 +145,93 @@ def get_clinical_resources_for_care_gaps(abha_id: str) -> list[dict[str, Any]]:
         except Exception:
             pass
 
-    # If DB query failed or empty, check fixture
-    if not resources and FIXTURES_DIR.exists():
-        for f in FIXTURES_DIR.glob("*.bundle.json"):
-            try:
-                bundle = json.loads(f.read_text(encoding="utf-8"))
-                pat_entry = next((e for e in bundle.get("entry", []) if e.get("resource", {}).get("resourceType") == "Patient"), None)
-                if pat_entry:
-                    ident = pat_entry.get("resource", {}).get("identifier", [{}])[0].get("value")
-                    if ident == norm_abha:
-                        for entry in bundle.get("entry", []):
-                            r = entry.get("resource", {})
-                            rtype = r.get("resourceType")
-                            if rtype in ("Condition", "Observation"):
-                                resources.append({
-                                    "id": r.get("id"),
-                                    "fhir_id": r.get("id"),
-                                    "resource_type": rtype,
-                                    "summary_title": r.get("code", {}).get("text") or "Clinical Item",
-                                    "event_date": r.get("effectiveDateTime") or r.get("recordedDate"),
-                                    "raw_json": r,
-                                    "source": "ingested",
-                                })
-                        log_access("care_gaps", norm_abha, True)
-                        break
-            except Exception:
-                continue
+    # If DB query failed or empty, fallback to synthetic facts
+    if not resources and norm_abha == "91-1234-5678-9012":
+        resources = [
+            {
+                "id": "cond-dm2",
+                "fhir_id": "cond-dm2",
+                "resource_type": "Condition",
+                "summary_title": "Type 2 diabetes mellitus",
+                "event_date": "2023-01-10T10:00:00Z",
+                "raw_json": {
+                    "resourceType": "Condition",
+                    "id": "cond-dm2",
+                    "code": {"coding": [{"code": "44054006"}], "text": "Type 2 diabetes mellitus"},
+                    "recordedDate": "2023-01-10T10:00:00Z",
+                },
+                "source": "ingested",
+            },
+            {
+                "id": "cond-htn",
+                "fhir_id": "cond-htn",
+                "resource_type": "Condition",
+                "summary_title": "Essential hypertension",
+                "event_date": "2023-02-14T10:00:00Z",
+                "raw_json": {
+                    "resourceType": "Condition",
+                    "id": "cond-htn",
+                    "code": {"coding": [{"code": "38341003"}], "text": "Essential hypertension"},
+                    "recordedDate": "2023-02-14T10:00:00Z",
+                },
+                "source": "ingested",
+            },
+            {
+                "id": "obs-hba1c-old",
+                "fhir_id": "obs-hba1c-old",
+                "resource_type": "Observation",
+                "summary_title": "HbA1c",
+                "event_date": "2023-11-15T09:00:00Z",
+                "raw_json": {
+                    "resourceType": "Observation",
+                    "id": "obs-hba1c-old",
+                    "status": "final",
+                    "code": {"coding": [{"code": "4548-4"}], "text": "HbA1c"},
+                    "effectiveDateTime": "2023-11-15T09:00:00Z",
+                    "valueQuantity": {"value": 7.4, "unit": "%"},
+                },
+                "source": "ingested",
+            },
+            {
+                "id": "obs-bp-recent",
+                "fhir_id": "obs-bp-recent",
+                "resource_type": "Observation",
+                "summary_title": "Blood Pressure",
+                "event_date": "2024-10-14T09:00:00Z",
+                "raw_json": {
+                    "resourceType": "Observation",
+                    "id": "obs-bp-recent",
+                    "status": "final",
+                    "code": {"coding": [{"code": "85354-9"}], "text": "Blood Pressure"},
+                    "effectiveDateTime": "2024-10-14T09:00:00Z",
+                    "component": [
+                        {"code": {"coding": [{"code": "8480-6"}]}, "valueQuantity": {"value": 148}},
+                        {"code": {"coding": [{"code": "8462-4"}]}, "valueQuantity": {"value": 94}},
+                    ],
+                },
+                "source": "ingested",
+            },
+            {
+                "id": "obs-bp-prior",
+                "fhir_id": "obs-bp-prior",
+                "resource_type": "Observation",
+                "summary_title": "Blood Pressure",
+                "event_date": "2024-06-10T09:00:00Z",
+                "raw_json": {
+                    "resourceType": "Observation",
+                    "id": "obs-bp-prior",
+                    "status": "final",
+                    "code": {"coding": [{"code": "85354-9"}], "text": "Blood Pressure"},
+                    "effectiveDateTime": "2024-06-10T09:00:00Z",
+                    "component": [
+                        {"code": {"coding": [{"code": "8480-6"}]}, "valueQuantity": {"value": 136}},
+                        {"code": {"coding": [{"code": "8462-4"}]}, "valueQuantity": {"value": 84}},
+                    ],
+                },
+                "source": "ingested",
+            },
+        ]
+        log_access("care_gaps", norm_abha, True)
 
     # Merge in-memory confirmed scans for this patient
     if norm_abha in _OFFLINE_SCAN_STORE:
@@ -240,38 +292,37 @@ def get_prescription_medications(rx_id: str) -> tuple[dict[str, Any] | None, lis
         except Exception:
             pass
 
-    # Fallback to local fixtures
-    if FIXTURES_DIR.exists():
-        for f in FIXTURES_DIR.glob("*.bundle.json"):
-            try:
-                bundle = json.loads(f.read_text(encoding="utf-8"))
-                meds = []
-                hospital = "Medical Center"
-                doctor = "Dr. Practitioner"
-                date_issued = "2024-10-14"
-
-                for entry in bundle.get("entry", []):
-                    r = entry.get("resource", {})
-                    if r.get("resourceType") == "Encounter":
-                        hospital = r.get("serviceProvider", {}).get("display", hospital)
-                        doctor = r.get("participant", [{}])[0].get("individual", {}).get("display", doctor)
-                    elif r.get("resourceType") == "MedicationRequest":
-                        meds.append({"raw_json": r, "summary_title": r.get("medicationCodeableConcept", {}).get("text")})
-
-                # Check known Rx-ID mapping (e.g. APL-RR-1410-RAME)
-                if norm_rx in ["APLRR1410RAME", "APL-RR-1410-RAME"]:
-                    log_access("savings", "APL-RR-1410-RAME", True)
-                    return (
-                        {
-                            "rx_id": "APL-RR-1410-RAME",
-                            "hospital_name": "Apollo Hospital",
-                            "doctor_name": "Dr. Rajesh Rao",
-                            "issued_on": date_issued,
-                        },
-                        meds,
-                    )
-            except Exception:
-                continue
+    # In-memory fallback for APL-RR-1410-RAME
+    if norm_rx in ["APLRR1410RAME", "APL-RR-1410-RAME"]:
+        log_access("savings", "APL-RR-1410-RAME", True)
+        return (
+            {
+                "rx_id": "APL-RR-1410-RAME",
+                "hospital_name": "Apollo Hospital",
+                "doctor_name": "Dr. Rajesh Rao",
+                "issued_on": "2024-10-14",
+            },
+            [
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-1",
+                        "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
+                        "dosageInstruction": [{"text": "500 mg - Once daily"}],
+                    },
+                    "summary_title": "Metformin 500 mg tablet",
+                },
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-2",
+                        "medicationCodeableConcept": {"text": "Atorvastatin 20 mg tablet"},
+                        "dosageInstruction": [{"text": "20 mg - At bedtime"}],
+                    },
+                    "summary_title": "Atorvastatin 20 mg tablet",
+                },
+            ],
+        )
 
     log_access("savings", rx_id, False)
     return None, []
@@ -454,20 +505,38 @@ def get_patient_bundle_from_db(abha_id: str) -> dict[str, Any] | None:
         except Exception:
             pass
 
-    # Fallback to local fixtures if DB unavailable
-    if FIXTURES_DIR.exists():
-        for f in FIXTURES_DIR.glob("*.bundle.json"):
-            try:
-                bundle = json.loads(f.read_text(encoding="utf-8"))
-                for entry in bundle.get("entry", []):
-                    res = entry.get("resource", {})
-                    if res.get("resourceType") == "Patient":
-                        ident = res.get("identifier", [{}])[0].get("value")
-                        if ident == norm_abha:
-                            log_access("abha_timeline", norm_abha, True)
-                            return bundle
-            except Exception:
-                continue
+    # In-memory demo bundle if DB unavailable
+    if norm_abha == "91-1234-5678-9012":
+        log_access("abha_timeline", norm_abha, True)
+        return {
+            "resourceType": "Bundle",
+            "type": "collection",
+            "total": 4,
+            "entry": [
+                {
+                    "fullUrl": "urn:uuid:patient-ramesh",
+                    "resource": {
+                        "resourceType": "Patient",
+                        "id": "patient-ramesh",
+                        "identifier": [{"system": "https://healthid.ndhm.gov.in", "value": "91-1234-5678-9012"}],
+                        "name": [{"text": "Ramesh Kumar"}],
+                        "gender": "male",
+                        "birthDate": "1970-05-15",
+                    },
+                },
+                {
+                    "fullUrl": "urn:uuid:med-1",
+                    "resource": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-1",
+                        "status": "active",
+                        "authoredOn": "2024-10-14T09:00:00Z",
+                        "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
+                        "dosageInstruction": [{"text": "500 mg - Once daily"}],
+                    },
+                },
+            ],
+        }
 
     return None
 
@@ -603,4 +672,273 @@ def get_admin_access_logs(limit: int = 100) -> list[dict[str, Any]]:
         except Exception:
             pass
     return []
+
+
+def get_admin_practitioners() -> list[dict[str, Any]]:
+    """Retrieve roster of registered doctors and physicians for the admin console."""
+    return [
+        {
+            "id": "doc-1",
+            "name": "Dr. Rajesh Rao, MD",
+            "role": "doctor",
+            "specialty": "Cardiology & Internal Medicine",
+            "hospital_or_facility": "Apollo Hospital, Bengaluru",
+            "license_id": "MCI-KA-2014-0491",
+            "status": "Active · Verified",
+            "actions_permitted": "Patient EHR Search, Create Prescriptions",
+        },
+        {
+            "id": "doc-2",
+            "name": "Dr. Sarah Connor, MD",
+            "role": "doctor",
+            "specialty": "General & Family Medicine",
+            "hospital_or_facility": "Fortis Multispeciality Hospital",
+            "license_id": "DMC-DL-2018-9124",
+            "status": "Active · Verified",
+            "actions_permitted": "Patient EHR Search, Create Prescriptions",
+        },
+        {
+            "id": "doc-3",
+            "name": "Dr. Priya Nair, MD",
+            "role": "doctor",
+            "specialty": "Endocrinology & Diabetology",
+            "hospital_or_facility": "AIIMS, New Delhi",
+            "license_id": "DMC-DL-2016-7731",
+            "status": "Active · Verified",
+            "actions_permitted": "Patient EHR Search, Create Prescriptions",
+        },
+        {
+            "id": "phy-1",
+            "name": "Dr. Dispensary Physician",
+            "role": "physician",
+            "specialty": "PMBJP Jan Aushadhi Dispensary",
+            "hospital_or_facility": "Pradhan Mantri Bhartiya Janaushadhi Kendra #1042",
+            "license_id": "PMBJP-IN-DISP-1042",
+            "status": "Active · Verified",
+            "actions_permitted": "Rx-ID Lookup, Generic Substitution, Savings Engine",
+        },
+        {
+            "id": "phy-2",
+            "name": "Dr. Amit Verma, B.Pharm / Clinical Physician",
+            "role": "physician",
+            "specialty": "Jan Aushadhi Generic Pharmacy",
+            "hospital_or_facility": "Kendra #2098, Civil Hospital Road",
+            "license_id": "PMBJP-IN-DISP-2098",
+            "status": "Active · Verified",
+            "actions_permitted": "Rx-ID Lookup, Generic Substitution, Savings Engine",
+        },
+        {
+            "id": "phy-3",
+            "name": "Dr. Meera Sen, MD (Pharmacology)",
+            "role": "physician",
+            "specialty": "Government Community Health Center",
+            "hospital_or_facility": "CHC Dispensary, Sector 14",
+            "license_id": "PMBJP-IN-DISP-3419",
+            "status": "Active · Verified",
+            "actions_permitted": "Rx-ID Lookup, Generic Substitution, Savings Engine",
+        },
+    ]
+
+
+def create_prescription_in_db(
+    abha_id: str,
+    doctor_name: str,
+    hospital_name: str,
+    diagnosis: str | None,
+    medications: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Create a new prescription and its corresponding FHIR MedicationRequest resources in the database."""
+    import uuid
+    import random
+    from datetime import datetime, timezone
+
+    norm_abha = abha_id.strip()
+    if not is_demo_patient(norm_abha):
+        return None
+
+    patient_name = "Demo Patient"
+    patient_id = None
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                pat_res = client.get(
+                    f"{SUPABASE_URL}/rest/v1/patients?abha_id=eq.{norm_abha}",
+                    headers=_get_headers(),
+                )
+                if pat_res.status_code == 200 and pat_res.json():
+                    p = pat_res.json()[0]
+                    patient_id = p.get("id")
+                    patient_name = p.get("name", patient_name)
+        except Exception:
+            pass
+
+    # Generate speakable Rx-ID: e.g. APL-DOC-1010-RAME23
+    initials = "".join([w[0] for w in patient_name.split() if w])[:4].upper() or "PATI"
+    day_month = datetime.now().strftime("%d%m")
+    rand_suffix = f"{random.randint(10, 99)}"
+    rx_id = f"APL-DOC-{day_month}-{initials}{rand_suffix}"
+    issued_on = datetime.now().strftime("%Y-%m-%d")
+
+    # If Supabase is connected, write row to prescriptions and fhir_resources
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and patient_id:
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                # 1. Insert into prescriptions
+                p_payload = {
+                    "rx_id": rx_id,
+                    "patient_id": patient_id,
+                    "abha_id": norm_abha,
+                    "hospital_name": hospital_name or "Apollo Hospitals",
+                    "doctor_name": doctor_name or "Dr. Rajesh Rao",
+                    "issued_on": issued_on,
+                }
+                client.post(
+                    f"{SUPABASE_URL}/rest/v1/prescriptions",
+                    headers=_get_headers(),
+                    json=p_payload,
+                )
+
+                # 2. Insert MedicationRequests
+                for idx, med in enumerate(medications):
+                    fid = f"med-req-{uuid.uuid4().hex[:8]}"
+                    m_title = med.get("name", "Prescribed Medicine")
+                    m_val = med.get("dosage", "1 tablet")
+                    raw_json = {
+                        "resourceType": "MedicationRequest",
+                        "id": fid,
+                        "status": "active",
+                        "intent": "order",
+                        "authoredOn": f"{issued_on}T10:00:00Z",
+                        "subject": {"reference": f"Patient/{patient_id}", "display": patient_name},
+                        "requester": {"display": doctor_name},
+                        "medicationCodeableConcept": {
+                            "text": m_title,
+                            "coding": [{"system": "http://snomed.info/sct", "display": m_title}],
+                        },
+                        "dosageInstruction": [
+                            {
+                                "text": f"{m_val} - {med.get('frequency', 'Once daily')}. {med.get('instructions', '')}",
+                            }
+                        ],
+                    }
+                    client.post(
+                        f"{SUPABASE_URL}/rest/v1/fhir_resources",
+                        headers=_get_headers(),
+                        json={
+                            "patient_id": patient_id,
+                            "abha_id": norm_abha,
+                            "resource_type": "MedicationRequest",
+                            "fhir_id": fid,
+                            "event_date": f"{issued_on}T10:00:00Z",
+                            "speakable_rx_id": rx_id,
+                            "summary_title": m_title,
+                            "summary_value": m_val,
+                            "raw_json": raw_json,
+                        },
+                    )
+
+                # If diagnosis provided, record Condition
+                if diagnosis:
+                    cid = f"cond-{uuid.uuid4().hex[:8]}"
+                    client.post(
+                        f"{SUPABASE_URL}/rest/v1/fhir_resources",
+                        headers=_get_headers(),
+                        json={
+                            "patient_id": patient_id,
+                            "abha_id": norm_abha,
+                            "resource_type": "Condition",
+                            "fhir_id": cid,
+                            "event_date": f"{issued_on}T10:00:00Z",
+                            "summary_title": diagnosis,
+                            "raw_json": {
+                                "resourceType": "Condition",
+                                "id": cid,
+                                "code": {"text": diagnosis},
+                                "recordedDate": f"{issued_on}T10:00:00Z",
+                            },
+                        },
+                    )
+                log_access("create_prescription", rx_id, True)
+        except Exception:
+            pass
+
+    return {
+        "rx_id": rx_id,
+        "patient_name": patient_name,
+        "abha_id": norm_abha,
+        "doctor_name": doctor_name,
+        "hospital_name": hospital_name,
+        "diagnosis": diagnosis,
+        "issued_on": issued_on,
+        "medications": medications,
+        "success": True,
+    }
+
+
+def get_patient_details_for_doctor(abha_id: str) -> dict[str, Any] | None:
+    """Retrieve full clinical details for a patient for Doctor consultation review."""
+    norm_abha = abha_id.strip()
+    if not is_demo_patient(norm_abha):
+        return None
+
+    patient_record = None
+    conditions = []
+    observations = []
+    prescriptions = []
+
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                # 1. Patient info
+                p_res = client.get(
+                    f"{SUPABASE_URL}/rest/v1/patients?abha_id=eq.{norm_abha}",
+                    headers=_get_headers(),
+                )
+                if p_res.status_code == 200 and p_res.json():
+                    patient_record = p_res.json()[0]
+
+                # 2. Conditions
+                c_res = client.get(
+                    f"{SUPABASE_URL}/rest/v1/fhir_resources?abha_id=eq.{norm_abha}&resource_type=eq.Condition&order=event_date.desc.nullslast",
+                    headers=_get_headers(),
+                )
+                if c_res.status_code == 200:
+                    conditions = c_res.json()
+
+                # 3. Observations
+                o_res = client.get(
+                    f"{SUPABASE_URL}/rest/v1/fhir_resources?abha_id=eq.{norm_abha}&resource_type=eq.Observation&order=event_date.desc.nullslast&limit=20",
+                    headers=_get_headers(),
+                )
+                if o_res.status_code == 200:
+                    observations = o_res.json()
+
+                # 4. Prescriptions
+                rx_res = client.get(
+                    f"{SUPABASE_URL}/rest/v1/prescriptions?abha_id=eq.{norm_abha}&order=issued_on.desc",
+                    headers=_get_headers(),
+                )
+                if rx_res.status_code == 200:
+                    prescriptions = rx_res.json()
+
+                log_access("doctor_lookup", norm_abha, True)
+        except Exception:
+            pass
+
+    if not patient_record:
+        # Fallback to demo entry
+        patient_record = {
+            "abha_id": norm_abha,
+            "name": "Ramesh Kumar",
+            "gender": "male",
+            "dob": "1970-05-15",
+            "phone": "+91 98765 43210",
+        }
+
+    return {
+        "patient": patient_record,
+        "conditions": conditions,
+        "observations": observations,
+        "prescriptions": prescriptions,
+    }
 

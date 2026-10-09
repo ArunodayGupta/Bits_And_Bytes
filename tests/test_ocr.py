@@ -131,7 +131,7 @@ def test_build_fhir_observation():
     reason="Live AWS Textract integration test skipped unless RUN_TEXTRACT_INTEGRATION=1",
 )
 def test_live_textract_integration():
-    sample_img = Path(__file__).resolve().parent.parent / "fixtures" / "sample-lab-report.png"
+    sample_img = Path(__file__).resolve().parent.parent / "frontend" / "public" / "sample-lab-report.png"
     assert sample_img.exists()
     from app.services.ocr_service import TextractProvider
     provider = TextractProvider()

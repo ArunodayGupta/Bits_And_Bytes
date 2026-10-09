@@ -15,7 +15,7 @@ from app.main import app
 from app.utils.db import reset_demo_scanned_resources
 
 client = TestClient(app)
-SAMPLE_REPORT_PNG = Path(__file__).resolve().parent.parent / "fixtures" / "sample-lab-report.png"
+SAMPLE_REPORT_PNG = Path(__file__).resolve().parent.parent / "frontend" / "public" / "sample-lab-report.png"
 
 
 @pytest.fixture(autouse=True)

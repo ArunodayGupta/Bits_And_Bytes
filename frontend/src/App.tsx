@@ -6,6 +6,8 @@ import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { SignUpPage } from '@/pages/SignUpPage';
 import { PatientView } from '@/pages/PatientView';
+import { PhysicianView } from '@/pages/PhysicianView';
+import { DoctorView } from '@/pages/DoctorView';
 import { ClinicianView } from '@/pages/ClinicianView';
 import { AdminView } from '@/pages/AdminView';
 import { FallbackToast } from '@/components/FallbackToast';
@@ -32,7 +34,7 @@ export default function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/signup" element={<SignUpPage />} />
 
-                  {/* Patient view guarded strictly by patient role */}
+                  {/* 1. Patient view guarded strictly by patient role */}
                   <Route
                     path="/patient"
                     element={
@@ -42,17 +44,37 @@ export default function App() {
                     }
                   />
 
-                  {/* Clinician view guarded strictly by clinician role */}
+                  {/* 2. Physician view guarded strictly by physician role */}
                   <Route
-                    path="/clinician"
+                    path="/physician"
                     element={
-                      <RequireRole allowedRoles={['clinician']}>
-                        <ClinicianView />
+                      <RequireRole allowedRoles={['physician', 'clinician']}>
+                        <PhysicianView />
                       </RequireRole>
                     }
                   />
 
-                  {/* Admin view guarded strictly by admin role */}
+                  {/* 3. Doctor view guarded strictly by doctor role */}
+                  <Route
+                    path="/doctor"
+                    element={
+                      <RequireRole allowedRoles={['doctor']}>
+                        <DoctorView />
+                      </RequireRole>
+                    }
+                  />
+
+                  {/* Backwards compatibility for /clinician */}
+                  <Route
+                    path="/clinician"
+                    element={
+                      <RequireRole allowedRoles={['physician', 'clinician', 'doctor']}>
+                        <PhysicianView />
+                      </RequireRole>
+                    }
+                  />
+
+                  {/* 4. Admin view guarded strictly by admin role */}
                   <Route
                     path="/admin"
                     element={

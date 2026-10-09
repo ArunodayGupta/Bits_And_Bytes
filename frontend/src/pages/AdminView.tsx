@@ -12,6 +12,7 @@ import {
   XCircle,
   Clock,
   Sparkles,
+  Stethoscope,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,17 @@ interface PatientRow {
   created_at?: string;
 }
 
+interface PractitionerRow {
+  id: string;
+  name: string;
+  role: 'doctor' | 'physician';
+  specialty: string;
+  hospital_or_facility: string;
+  license_id: string;
+  status: string;
+  actions_permitted: string;
+}
+
 interface PrescriptionRow {
   rx_id: string;
   patient_id?: string;
@@ -72,6 +84,7 @@ export const AdminView: React.FC = () => {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [patients, setPatients] = useState<PatientRow[]>([]);
+  const [practitioners, setPractitioners] = useState<PractitionerRow[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionRow[]>([]);
   const [fhirResources, setFhirResources] = useState<FhirResourceRow[]>([]);
 
@@ -84,12 +97,13 @@ export const AdminView: React.FC = () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const [mRes, logRes, patRes, rxRes, fhirRes] = await Promise.all([
+      const [mRes, logRes, patRes, rxRes, fhirRes, staffRes] = await Promise.all([
         fetch('/api/admin/metrics'),
         fetch('/api/admin/access-logs?limit=100'),
         fetch('/api/admin/patients'),
         fetch('/api/admin/prescriptions'),
         fetch('/api/admin/fhir-resources?limit=60'),
+        fetch('/api/admin/practitioners'),
       ]);
 
       if (mRes.ok) {
@@ -100,6 +114,9 @@ export const AdminView: React.FC = () => {
       }
       if (patRes.ok) {
         setPatients(await patRes.json());
+      }
+      if (staffRes.ok) {
+        setPractitioners(await staffRes.json());
       }
       if (rxRes.ok) {
         setPrescriptions(await rxRes.json());
@@ -285,12 +302,15 @@ export const AdminView: React.FC = () => {
       {/* Main Tabs Explorer */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-2">
-          <TabsList className="bg-paper-2 p-1 rounded-full border border-hairline">
+          <TabsList className="bg-paper-2 p-1 rounded-full border border-hairline flex flex-wrap">
             <TabsTrigger value="logs" className="rounded-full text-xs font-semibold">
               API Requests Audit ({accessLogs.length})
             </TabsTrigger>
             <TabsTrigger value="patients" className="rounded-full text-xs font-semibold">
               Patients ({patients.length})
+            </TabsTrigger>
+            <TabsTrigger value="practitioners" className="rounded-full text-xs font-semibold">
+              Doctors & Physicians ({practitioners.length})
             </TabsTrigger>
             <TabsTrigger value="prescriptions" className="rounded-full text-xs font-semibold">
               Prescriptions ({prescriptions.length})
@@ -424,6 +444,62 @@ export const AdminView: React.FC = () => {
                             Demo Active
                           </span>
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Doctors & Dispensary Physicians */}
+        <TabsContent value="practitioners" className="space-y-4">
+          <Card className="rounded-24 border border-hairline bg-card shadow-soft overflow-hidden">
+            <CardHeader className="bg-paper-2/40 border-b border-hairline py-3 px-6">
+              <CardTitle className="text-sm font-semibold">Doctors & Dispensary Physicians Roster</CardTitle>
+              <CardDescription className="text-xs">
+                Clinical doctors (EHR diagnosis & electronic prescriptions) and dispensary physicians (PMBJP generic medicine alternatives & savings engine).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-paper-2/80 border-b border-hairline text-ink-soft uppercase text-[10px] tracking-wider font-semibold">
+                    <tr>
+                      <th className="px-5 py-3">Practitioner Name</th>
+                      <th className="px-5 py-3">Role</th>
+                      <th className="px-5 py-3">Specialty / Category</th>
+                      <th className="px-5 py-3">Hospital / Kendra Facility</th>
+                      <th className="px-5 py-3">License ID</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Permissions & Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-hairline">
+                    {practitioners.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-paper-2/40 transition-colors">
+                        <td className="px-5 py-3 font-semibold text-ink">{doc.name}</td>
+                        <td className="px-5 py-3">
+                          {doc.role === 'doctor' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+                              <Stethoscope className="h-3 w-3" /> Doctor
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-300">
+                              <Pill className="h-3 w-3" /> Physician
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-ink-soft">{doc.specialty}</td>
+                        <td className="px-5 py-3 text-ink">{doc.hospital_or_facility}</td>
+                        <td className="px-5 py-3 font-mono font-medium text-ink-soft">{doc.license_id}</td>
+                        <td className="px-5 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                            {doc.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-[11px] text-ink-soft">{doc.actions_permitted}</td>
                       </tr>
                     ))}
                   </tbody>

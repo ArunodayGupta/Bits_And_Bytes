@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Stethoscope, User, Menu, X, Leaf, House, LogOut, ShieldCheck } from 'lucide-react';
+import { Stethoscope, User, Menu, X, Leaf, House, LogOut, ShieldCheck, Pill } from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
 import { useAuth } from '@/context/AuthContext';
 import { PatientCard } from './PatientCard';
@@ -58,11 +58,19 @@ export const Navbar: React.FC = () => {
                 </NavLink>
               )}
 
-              {/* Clinician badge */}
-              {role === 'clinician' && (
+              {/* Physician badge */}
+              {(role === 'physician' || role === 'clinician') && (
+                <div className="flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3.5 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300">
+                  <Pill className="h-4 w-4 text-teal-600" />
+                  <span>{userName || 'Dr. Dispensary Physician'}</span>
+                </div>
+              )}
+
+              {/* Doctor badge */}
+              {role === 'doctor' && (
                 <div className="flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3.5 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
                   <Stethoscope className="h-4 w-4 text-sky-600" />
-                  <span>{userName || 'Dr. Medical Practitioner'}</span>
+                  <span>{userName || 'Dr. Rajesh Rao, MD'}</span>
                 </div>
               )}
 
@@ -96,7 +104,7 @@ export const Navbar: React.FC = () => {
             </>
           ) : isAuthPage || !isAuthenticated ? null : (
             <>
-              {/* Patient role sees ONLY Patient Timeline */}
+              {/* 1. Patient role sees ONLY Patient Timeline */}
               {role === 'patient' && (
                 <NavLink
                   to="/patient"
@@ -111,10 +119,25 @@ export const Navbar: React.FC = () => {
                 </NavLink>
               )}
 
-              {/* Clinician role sees ONLY Clinician Lookup */}
-              {role === 'clinician' && (
+              {/* 2. Physician role sees ONLY Physician Portal */}
+              {(role === 'physician' || role === 'clinician') && (
                 <NavLink
-                  to="/clinician"
+                  to="/physician"
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
+                      isActive ? 'bg-card text-ink shadow-sm' : 'text-ink-soft hover:text-ink'
+                    }`
+                  }
+                >
+                  <Pill className="h-3.5 w-3.5 text-teal-600" />
+                  <span>Physician Portal</span>
+                </NavLink>
+              )}
+
+              {/* 3. Doctor role sees ONLY Doctor Portal */}
+              {role === 'doctor' && (
+                <NavLink
+                  to="/doctor"
                   className={({ isActive }) =>
                     `relative flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
                       isActive ? 'bg-card text-ink shadow-sm' : 'text-ink-soft hover:text-ink'
@@ -122,11 +145,11 @@ export const Navbar: React.FC = () => {
                   }
                 >
                   <Stethoscope className="h-3.5 w-3.5 text-sky-600" />
-                  <span>Clinician Lookup</span>
+                  <span>Doctor Portal</span>
                 </NavLink>
               )}
 
-              {/* Admin role sees ONLY Admin Console */}
+              {/* 4. Admin role sees ONLY Admin Console */}
               {role === 'admin' && (
                 <NavLink
                   to="/admin"
@@ -231,14 +254,25 @@ export const Navbar: React.FC = () => {
                 </NavLink>
               )}
 
-              {role === 'clinician' && (
+              {(role === 'physician' || role === 'clinician') && (
                 <NavLink
-                  to="/clinician"
+                  to="/physician"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-full py-2.5 text-xs font-medium bg-teal-600 text-paper"
+                >
+                  <Pill className="h-3.5 w-3.5" />
+                  <span>Physician Portal</span>
+                </NavLink>
+              )}
+
+              {role === 'doctor' && (
+                <NavLink
+                  to="/doctor"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center gap-2 rounded-full py-2.5 text-xs font-medium bg-sky-600 text-paper"
                 >
                   <Stethoscope className="h-3.5 w-3.5" />
-                  <span>Clinician Lookup</span>
+                  <span>Doctor Portal</span>
                 </NavLink>
               )}
 

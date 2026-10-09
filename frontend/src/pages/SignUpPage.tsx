@@ -5,13 +5,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ShieldCheck, Stethoscope, User, Loader2, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import { ShieldCheck, Stethoscope, User, Loader2, ArrowRight, CheckCircle2, Lock, Pill } from 'lucide-react';
 
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loginWithGoogle, loginPatient, loginClinician, loginAdmin } = useAuth();
+  const { loginWithGoogle, loginPatient, loginPhysician, loginDoctor, loginAdmin } = useAuth();
 
-  const [role, setRole] = useState<'patient' | 'clinician' | 'admin'>('patient');
+  const [role, setRole] = useState<'patient' | 'physician' | 'doctor' | 'admin'>('patient');
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [abhaInput, setAbhaInput] = useState<string>('91-1234-5678-9012');
@@ -24,11 +24,21 @@ export const SignUpPage: React.FC = () => {
     setGoogleLoading(true);
     setTimeout(() => {
       const generatedEmail = email || 'user@example.com';
-      const generatedName = fullName || (role === 'clinician' ? 'Dr. Sarah Connor' : role === 'admin' ? 'Admin Officer' : 'Aarav Sharma');
+      const generatedName =
+        fullName ||
+        (role === 'doctor'
+          ? 'Dr. Rajesh Rao, MD'
+          : role === 'physician'
+          ? 'Dr. Dispensary Physician'
+          : role === 'admin'
+          ? 'Admin Officer'
+          : 'Aarav Sharma');
       loginWithGoogle(generatedEmail, generatedName, role);
       setGoogleLoading(false);
-      if (role === 'clinician') {
-        navigate('/clinician');
+      if (role === 'doctor') {
+        navigate('/doctor');
+      } else if (role === 'physician') {
+        navigate('/physician');
       } else if (role === 'admin') {
         navigate('/admin');
       } else {
@@ -42,9 +52,12 @@ export const SignUpPage: React.FC = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      if (role === 'clinician') {
-        loginClinician(fullName || 'Dr. Medical Practitioner');
-        navigate('/clinician');
+      if (role === 'doctor') {
+        loginDoctor(fullName || 'Dr. Rajesh Rao, MD');
+        navigate('/doctor');
+      } else if (role === 'physician') {
+        loginPhysician(fullName || 'Dr. Dispensary Physician');
+        navigate('/physician');
       } else if (role === 'admin') {
         loginAdmin(fullName || 'System Administrator');
         navigate('/admin');
@@ -129,7 +142,7 @@ export const SignUpPage: React.FC = () => {
             <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft block">
               Choose your Account Type
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setRole('patient')}
@@ -145,9 +158,22 @@ export const SignUpPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setRole('clinician')}
+                onClick={() => setRole('physician')}
                 className={`flex flex-col items-center justify-center p-3 rounded-20 border text-xs font-medium transition-all ${
-                  role === 'clinician'
+                  role === 'physician'
+                    ? 'border-teal-600 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 ring-2 ring-teal-600/20'
+                    : 'border-hairline bg-paper-2 text-ink-soft hover:text-ink'
+                }`}
+              >
+                <Pill className="h-4 w-4 mb-1" />
+                <span>Physician</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole('doctor')}
+                className={`flex flex-col items-center justify-center p-3 rounded-20 border text-xs font-medium transition-all ${
+                  role === 'doctor'
                     ? 'border-sky-600 bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 ring-2 ring-sky-600/20'
                     : 'border-hairline bg-paper-2 text-ink-soft hover:text-ink'
                 }`}
@@ -179,7 +205,15 @@ export const SignUpPage: React.FC = () => {
               </label>
               <Input
                 type="text"
-                placeholder={role === 'clinician' ? 'Dr. Rajesh Rao' : role === 'admin' ? 'Admin Officer' : 'Ramesh Kumar'}
+                placeholder={
+                  role === 'doctor'
+                    ? 'Dr. Rajesh Rao, MD'
+                    : role === 'physician'
+                    ? 'Dr. Dispensary Physician'
+                    : role === 'admin'
+                    ? 'Admin Officer'
+                    : 'Ramesh Kumar'
+                }
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="h-10 rounded-xl"

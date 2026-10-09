@@ -8,6 +8,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from app.utils.db import (
     get_admin_metrics,
     get_admin_patients,
+    get_admin_practitioners,
     get_admin_prescriptions,
     get_admin_fhir_resources,
     get_admin_access_logs,
@@ -43,6 +44,18 @@ def read_admin_patients():
     """Retrieve all registered patients for the admin console."""
     try:
         return get_admin_patients()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {"code": "INTERNAL_ERROR", "message": str(e)}},
+        )
+
+
+@router.get("/practitioners")
+def read_admin_practitioners():
+    """Retrieve all registered doctors and physicians for the admin console."""
+    try:
+        return get_admin_practitioners()
     except Exception as e:
         raise HTTPException(
             status_code=500,

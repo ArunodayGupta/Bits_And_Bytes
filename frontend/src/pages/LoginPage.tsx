@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ShieldCheck, Stethoscope, User, Loader2, KeyRound, AlertCircle, Info, Lock } from 'lucide-react';
+import { ShieldCheck, Stethoscope, User, Loader2, KeyRound, AlertCircle, Info, Lock, Pill } from 'lucide-react';
 
 interface DemoPatientChip {
   abha_id: string;
@@ -32,10 +32,10 @@ const DEFAULT_DEMO_PATIENTS: DemoPatientChip[] = [
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loginPatient, loginClinician, loginAdmin, loginWithGoogle, isAuthenticated, role } = useAuth();
+  const { loginPatient, loginPhysician, loginDoctor, loginAdmin, loginWithGoogle, isAuthenticated, role } = useAuth();
   const { setPatientId, availablePatients } = usePatientData();
 
-  const [activeTab, setActiveTab] = useState<'patient' | 'clinician' | 'admin' | 'google'>('patient');
+  const [activeTab, setActiveTab] = useState<'patient' | 'physician' | 'doctor' | 'admin'>('patient');
   const [abhaInput, setAbhaInput] = useState<string>('91-1234-5678-9012');
   const [step, setStep] = useState<'abha' | 'otp'>('abha');
   const [otpInput, setOtpInput] = useState<string>('');
@@ -50,8 +50,10 @@ export const LoginPage: React.FC = () => {
   // If already logged in, redirect to the user's scoped dashboard
   useEffect(() => {
     if (isAuthenticated) {
-      if (role === 'clinician') {
-        navigate('/clinician', { replace: true });
+      if (role === 'physician' || role === 'clinician') {
+        navigate('/physician', { replace: true });
+      } else if (role === 'doctor') {
+        navigate('/doctor', { replace: true });
       } else if (role === 'admin') {
         navigate('/admin', { replace: true });
       } else {
@@ -152,9 +154,14 @@ export const LoginPage: React.FC = () => {
     }, 400);
   };
 
-  const handleClinicianContinue = () => {
-    loginClinician('Dr. Medical Practitioner');
-    navigate('/clinician', { replace: true });
+  const handlePhysicianContinue = () => {
+    loginPhysician('Dr. Dispensary Physician');
+    navigate('/physician', { replace: true });
+  };
+
+  const handleDoctorContinue = () => {
+    loginDoctor('Dr. Rajesh Rao, MD');
+    navigate('/doctor', { replace: true });
   };
 
   const handleAdminContinue = () => {
@@ -165,9 +172,17 @@ export const LoginPage: React.FC = () => {
   const handleGoogleSignIn = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      loginWithGoogle('demo.user@gmail.com', 'Google User', 'patient');
+      loginWithGoogle('demo.user@gmail.com', 'Google User', activeTab);
       setGoogleLoading(false);
-      navigate('/patient', { replace: true });
+      if (activeTab === 'physician') {
+        navigate('/physician', { replace: true });
+      } else if (activeTab === 'doctor') {
+        navigate('/doctor', { replace: true });
+      } else if (activeTab === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/patient', { replace: true });
+      }
     }, 500);
   };
 
@@ -208,14 +223,14 @@ export const LoginPage: React.FC = () => {
               <TabsTrigger value="patient" className="rounded-full text-xs font-semibold">
                 Patient
               </TabsTrigger>
-              <TabsTrigger value="clinician" className="rounded-full text-xs font-semibold">
+              <TabsTrigger value="physician" className="rounded-full text-xs font-semibold">
+                Physician
+              </TabsTrigger>
+              <TabsTrigger value="doctor" className="rounded-full text-xs font-semibold">
                 Doctor
               </TabsTrigger>
               <TabsTrigger value="admin" className="rounded-full text-xs font-semibold">
                 Admin
-              </TabsTrigger>
-              <TabsTrigger value="google" className="rounded-full text-xs font-semibold">
-                Google
               </TabsTrigger>
             </TabsList>
 
@@ -366,27 +381,47 @@ export const LoginPage: React.FC = () => {
               )}
             </TabsContent>
 
-            {/* CLINICIAN TAB */}
-            <TabsContent value="clinician" className="space-y-4 pt-2 text-center">
-              <div className="rounded-20 border border-sky-500/20 bg-sky-500/5 p-4 text-left space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-sky-800 dark:text-sky-300">
-                  <Stethoscope className="h-4 w-4 text-sky-600" />
-                  Practitioner Verification Portal
+            {/* PHYSICIAN TAB: Generic Alternatives & Savings */}
+            <TabsContent value="physician" className="space-y-4 pt-2 text-center">
+              <div className="rounded-20 border border-teal-500/20 bg-teal-500/5 p-4 text-left space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300">
+                  <Pill className="h-4 w-4 text-teal-600" />
+                  Jan Aushadhi Dispensary Physician Portal
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Allows immediate clinician lookup of patient prescriptions using deterministic speakable Rx-IDs (e.g. <code className="font-mono bg-paper-2 px-1 rounded">APL-RR-1410-RAME</code>). Strict role scoping prevents clinicians from browsing unrelated patient records.
+                  Takes the speakable Rx-ID (e.g. <code className="font-mono bg-paper-2 px-1 rounded">APL-RR-1410-RAME</code>) or Patient ABHA ID to evaluate prescribed medicines, find PMBJP Jan Aushadhi generic substitutes, calculate monthly savings in rupees, and check active care-gap alerts.
                 </p>
               </div>
               <Button
                 type="button"
-                onClick={handleClinicianContinue}
-                className="w-full rounded-full bg-sky-600 hover:bg-sky-700 text-paper"
+                onClick={handlePhysicianContinue}
+                className="w-full rounded-full bg-teal-600 hover:bg-teal-700 text-paper font-semibold"
               >
-                Continue as Clinician (Demo)
+                Continue as Physician
               </Button>
             </TabsContent>
 
-            {/* ADMIN TAB */}
+            {/* DOCTOR TAB: Patient EHR Search & Create Prescriptions */}
+            <TabsContent value="doctor" className="space-y-4 pt-2 text-center">
+              <div className="rounded-20 border border-sky-500/20 bg-sky-500/5 p-4 text-left space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-sky-800 dark:text-sky-300">
+                  <Stethoscope className="h-4 w-4 text-sky-600" />
+                  Clinical Doctor Portal
+                </div>
+                <p className="text-xs text-ink-soft leading-relaxed">
+                  Look up complete patient clinical history (conditions, blood pressure, HbA1c vitals, lab reports) and generate new verified electronic prescriptions directly with deterministic speakable Rx-IDs.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={handleDoctorContinue}
+                className="w-full rounded-full bg-sky-600 hover:bg-sky-700 text-paper font-semibold"
+              >
+                Continue as Doctor
+              </Button>
+            </TabsContent>
+
+            {/* ADMIN TAB: Multi-Entity Governance */}
             <TabsContent value="admin" className="space-y-4 pt-2 text-center">
               <div className="rounded-20 border border-amber-500/20 bg-amber-500/5 p-4 text-left space-y-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
@@ -394,56 +429,62 @@ export const LoginPage: React.FC = () => {
                   System Administrator Portal
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Full administrative observability: monitors database sync status, inspects live <code className="font-mono bg-paper-2 px-1 rounded">access_logs</code> (API request telemetry), and manages registered ABHA patient records.
+                  Governance across all entities: manage patients, doctors, physicians, prescriptions, and FHIR resources, while inspecting live audit request telemetry (<code className="font-mono bg-paper-2 px-1 rounded">access_logs</code>).
                 </p>
               </div>
               <Button
                 type="button"
                 onClick={handleAdminContinue}
-                className="w-full rounded-full bg-amber-600 hover:bg-amber-700 text-paper"
+                className="w-full rounded-full bg-amber-600 hover:bg-amber-700 text-paper font-semibold"
               >
                 Access Admin Console
               </Button>
             </TabsContent>
-
-            {/* GOOGLE / CLERK TAB */}
-            <TabsContent value="google" className="space-y-4 pt-2">
-              <p className="text-xs text-ink-soft text-center leading-relaxed">
-                Authenticate with your Google credentials via Clerk Single Sign-On.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-                className="w-full h-11 rounded-full border border-hairline bg-paper-2 hover:bg-card flex items-center justify-center gap-3 text-xs font-semibold shadow-sm"
-              >
-                {googleLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-ink-soft" />
-                ) : (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                )}
-                <span>Sign In with Google (Clerk)</span>
-              </Button>
-            </TabsContent>
           </Tabs>
+
+          {/* Social Sign In (Clerk / Google) */}
+          <div className="pt-2">
+            <div className="relative flex items-center justify-center text-xs mb-3">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-hairline" />
+              </div>
+              <span className="relative bg-card px-3 text-[11px] uppercase tracking-wider text-ink-soft">
+                Or Fast-Track Single Sign-On
+              </span>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              className="w-full h-10 rounded-full border border-hairline bg-paper-2 hover:bg-card flex items-center justify-center gap-2.5 text-xs font-semibold shadow-sm"
+            >
+              {googleLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-ink-soft" />
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    fill="#EA4335"
+                  />
+                </svg>
+              )}
+              <span>Sign In with Google (Clerk SSO as {activeTab.toUpperCase()})</span>
+            </Button>
+          </div>
         </CardContent>
 
         <CardFooter className="bg-paper-2/50 border-t border-hairline py-4 px-6 flex justify-center text-xs text-ink-soft">

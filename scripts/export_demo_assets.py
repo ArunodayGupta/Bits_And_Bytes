@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 from app.services.ocr_service import MockOcrProvider, parse_ocr_document_to_draft
 from app.services.savings_service import compute_savings_for_prescription
-from app.utils.db import FIXTURES_DIR
+from app.utils.db import get_patient_bundle_from_db
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEMO_ASSETS_DIR = ROOT_DIR / "frontend" / "public" / "demo"
@@ -25,11 +25,10 @@ def export_assets():
     DEMO_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
     # 1. Export sample-savings.json for Ramesh Kumar (APL-RR-1410-RAME)
-    fixture_path = FIXTURES_DIR / "ramesh-kumar.bundle.json"
-    if not fixture_path.exists():
-        raise FileNotFoundError(f"Fixture not found at {fixture_path}")
+    bundle = get_patient_bundle_from_db("91-1234-5678-9012")
+    if not bundle:
+        raise ValueError("Could not retrieve bundle from database for Ramesh Kumar")
 
-    bundle = json.loads(fixture_path.read_text(encoding="utf-8"))
     med_requests = [
         {"raw_json": e["resource"], "summary_title": e["resource"].get("medicationCodeableConcept", {}).get("text")}
         for e in bundle.get("entry", [])

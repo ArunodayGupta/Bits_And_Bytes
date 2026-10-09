@@ -11,7 +11,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
-export type UserRole = 'patient' | 'clinician' | 'admin' | null;
+export type UserRole = 'patient' | 'physician' | 'doctor' | 'admin' | 'clinician' | null;
 
 export interface AuthContextValue {
   role: UserRole;
@@ -19,9 +19,11 @@ export interface AuthContextValue {
   userName: string | null;
   userEmail: string | null;
   loginPatient: (abha: string, name?: string) => void;
+  loginPhysician: (name?: string) => void;
+  loginDoctor: (name?: string) => void;
   loginClinician: (name?: string) => void;
   loginAdmin: (name?: string) => void;
-  loginWithGoogle: (email: string, name?: string, preferredRole?: 'patient' | 'clinician' | 'admin') => void;
+  loginWithGoogle: (email: string, name?: string, preferredRole?: UserRole) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -61,15 +63,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
   }, []);
 
-  const loginClinician = useCallback((name?: string) => {
-    const finalName = name || 'Dr. Medical Practitioner';
-    setRole('clinician');
+  const loginPhysician = useCallback((name?: string) => {
+    const finalName = name || 'Dr. Dispensary Physician';
+    setRole('physician');
     setAbhaId(null);
     setUserName(finalName);
-    sessionStorage.setItem(STORAGE_KEY_ROLE, 'clinician');
+    sessionStorage.setItem(STORAGE_KEY_ROLE, 'physician');
     sessionStorage.removeItem(STORAGE_KEY_ABHA);
     sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
   }, []);
+
+  const loginDoctor = useCallback((name?: string) => {
+    const finalName = name || 'Dr. Rajesh Rao, MD';
+    setRole('doctor');
+    setAbhaId(null);
+    setUserName(finalName);
+    sessionStorage.setItem(STORAGE_KEY_ROLE, 'doctor');
+    sessionStorage.removeItem(STORAGE_KEY_ABHA);
+    sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
+  }, []);
+
+  const loginClinician = useCallback((name?: string) => {
+    loginPhysician(name);
+  }, [loginPhysician]);
 
   const loginAdmin = useCallback((name?: string) => {
     const finalName = name || 'System Administrator';
@@ -81,17 +97,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
   }, []);
 
-  const loginWithGoogle = useCallback((email: string, name?: string, preferredRole: 'patient' | 'clinician' | 'admin' = 'patient') => {
+  const loginWithGoogle = useCallback((email: string, name?: string, preferredRole: UserRole = 'patient') => {
     const normEmail = email.trim();
+    const finalRole = preferredRole || 'patient';
     const finalName = name || normEmail.split('@')[0];
-    setRole(preferredRole);
+    setRole(finalRole);
     setUserEmail(normEmail);
     setUserName(finalName);
-    sessionStorage.setItem(STORAGE_KEY_ROLE, preferredRole);
+    sessionStorage.setItem(STORAGE_KEY_ROLE, finalRole);
     sessionStorage.setItem(STORAGE_KEY_EMAIL, normEmail);
     sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
 
-    if (preferredRole === 'patient') {
+    if (finalRole === 'patient') {
       const defaultAbha = '91-1234-5678-9012';
       setAbhaId(defaultAbha);
       sessionStorage.setItem(STORAGE_KEY_ABHA, defaultAbha);
@@ -120,6 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userName,
         userEmail,
         loginPatient,
+        loginPhysician,
+        loginDoctor,
         loginClinician,
         loginAdmin,
         loginWithGoogle,
