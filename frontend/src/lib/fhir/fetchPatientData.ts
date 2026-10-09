@@ -1,5 +1,5 @@
 import type { FhirBundle } from './types';
-import offlineBundleData from '../../../public/op-consultation.json';
+import offlineBundleData from '@/data/op-consultation.json';
 
 export interface PatientDataResult {
   bundle: FhirBundle;

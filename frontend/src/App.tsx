@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { PatientDataProvider } from '@/context/PatientDataContext';
 import { Navbar } from '@/components/Navbar';
 import { PatientView } from '@/pages/PatientView';
 import { ClinicianView } from '@/pages/ClinicianView';
 import { FallbackToast } from '@/components/FallbackToast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LandingPage } from '@/pages/LandingPage';
 
 export default function App() {
   return (
@@ -21,10 +22,10 @@ export default function App() {
             {/* Main Application Content */}
             <main className="flex-1 mx-auto w-full max-w-[1200px] px-4 pt-6">
               <Routes>
-                <Route path="/" element={<Navigate to="/patient" replace />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/patient" element={<PatientView />} />
                 <Route path="/clinician" element={<ClinicianView />} />
-                <Route path="*" element={<Navigate to="/patient" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
 
@@ -40,10 +41,13 @@ export default function App() {
                   </span>
                   <span>— Patient-Owned Medical Records</span>
                 </div>
-                <div className="flex items-center gap-4 text-[11px]">
+                <div className="flex flex-wrap items-center justify-center gap-3 text-[11px]">
+                  <Link to="/patient" className="hover:text-ink">Patient Dashboard</Link>
+                  <Link to="/clinician" className="hover:text-ink">Clinician Lookup</Link>
+                  <a href="https://github.com" className="hover:text-ink">GitHub</a>
                   <span>NRCeS / ABDM FHIR R4 Architecture</span>
                   <span>•</span>
-                  <span>Zero-Cloud Browser State</span>
+                  <span>Demo only. Uses synthetic data. Not for clinical use.</span>
                 </div>
               </div>
             </footer>

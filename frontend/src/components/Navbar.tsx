@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Stethoscope, User, Menu, X } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Stethoscope, User, Menu, X, Leaf } from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
 import { PatientCard } from './PatientCard';
 import { DataSourceSelect } from './DataSourceSelect';
@@ -11,6 +11,7 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isClinician = location.pathname.startsWith('/clinician');
+  const isLanding = location.pathname === '/';
 
   const dotColorClass =
     statusState === 'live'
@@ -27,13 +28,20 @@ export const Navbar: React.FC = () => {
       >
         {/* Left: Patient Profile summary */}
         <div className="flex items-center">
-          <NavLink to="/patient" className="hover:opacity-90 transition-opacity">
-            <PatientCard patient={patient} compact />
-          </NavLink>
+          {isLanding ? <Link to="/" className="flex items-center gap-2 font-serif text-xl text-ink"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper"><Leaf className="h-4 w-4" /></span>HealthSafe</Link> : <NavLink to="/patient" className="hover:opacity-90 transition-opacity"><PatientCard patient={patient} compact /></NavLink>}
         </div>
 
         {/* Centre: Segmented View Switcher */}
         <div className="hidden sm:flex items-center rounded-full bg-paper-2/90 p-1 border border-hairline">
+          {isLanding ? (
+            <>
+              <a href="#patients" className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink">For Patients</a>
+              <a href="#doctors" className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink">For Doctors</a>
+              <a href="#how-it-works" className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink">How it works</a>
+              <a href="#features" className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink">Features</a>
+            </>
+          ) : (
+            <>
           <NavLink
             to="/patient"
             className={({ isActive }) =>
@@ -61,11 +69,13 @@ export const Navbar: React.FC = () => {
             <Stethoscope className="h-3.5 w-3.5" />
             <span>Clinician Lookup</span>
           </NavLink>
+            </>
+          )}
         </div>
 
         {/* Right: Data Source Selector & Actions */}
         <div className="hidden lg:flex items-center gap-3">
-          <DataSourceSelect />
+          {isLanding ? <Link to="/patient" className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-paper transition-colors hover:bg-moss-600">Try Demo</Link> : <DataSourceSelect />}
         </div>
 
         {/* Mobile menu toggle */}
