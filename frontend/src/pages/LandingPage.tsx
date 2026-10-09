@@ -11,13 +11,13 @@ const ButtonLink = ({ to, children, secondary = false }: { to: string; children:
 const Eyebrow = ({ children }: { children: ReactNode }) => <span className="eyebrow-pill"><span className="eyebrow-dot" />{children}</span>;
 
 const MockTimeline = () => (
-  <div className="relative overflow-hidden rounded-28 border border-white/25 bg-[#f8f3e8]/90 p-4 text-ink shadow-glass sm:p-6">
+  <div className="mock-timeline relative overflow-hidden rounded-28 border border-white/25 bg-[#f8f3e8]/90 p-4 text-ink shadow-glass sm:p-6">
     <div className="mb-5 flex items-center justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-ink-soft">Ramesh Kumar</p><h3 className="font-serif text-2xl">Your timeline</h3></div><div className="rounded-full bg-moss-100 px-3 py-1 text-[10px] font-semibold text-moss-600">4 records</div></div>
     <div className="relative space-y-3 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-moss-500/40">
       {[['Lab result', 'HbA1c · 6.8%', 'bg-event-lab-bg text-event-lab-text'], ['Prescription', 'Metformin · 500mg', 'bg-event-med-bg text-event-med-text'], ['Consultation', 'Apollo Hospitals', 'bg-event-enc-bg text-event-enc-text']].map(([kind, label, color]) => <div key={kind} className="relative flex items-center gap-3"><span className="z-10 h-7 w-7 rounded-full border-4 border-[#f8f3e8] bg-moss-600" /><div className="flex flex-1 items-center justify-between rounded-2xl border border-hairline bg-card px-3 py-2.5"><div><p className="text-[10px] text-ink-soft">{kind}</p><p className="text-sm font-medium">{label}</p></div><span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${color}`}>NEW</span></div></div>)}
     </div>
     <div className="mt-5 h-12 rounded-xl bg-moss-100/50 p-2"><svg viewBox="0 0 240 32" className="h-full w-full" aria-label="HbA1c trend chart"><path d="M0 26 C35 24,45 9,75 16 S110 27,135 12 S180 5,240 9" fill="none" stroke="#4F6B3A" strokeWidth="2.5" /><path d="M0 26 C35 24,45 9,75 16 S110 27,135 12 S180 5,240 9 L240 32 L0 32Z" fill="#6F8F4E" opacity=".15" /></svg></div>
-    <div className="absolute -right-2 top-20 animate-float rounded-2xl border border-white/60 bg-white/65 p-3 shadow-glass backdrop-blur-md"><p className="font-mono text-xs font-semibold tracking-wide">APL-RR-1410-RAME</p><p className="mt-1 text-[10px] text-ink-soft">Read this aloud to your doctor</p></div>
+    <div className="absolute right-5 top-16 z-20 max-w-[185px] animate-float rounded-2xl border border-white/60 bg-white/80 p-3 shadow-glass backdrop-blur-md"><p className="font-mono text-xs font-semibold tracking-wide">APL-RR-1410-RAME</p><p className="mt-1 text-[10px] text-ink-soft">Read this aloud to your doctor</p></div>
   </div>
 );
 

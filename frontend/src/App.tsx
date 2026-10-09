@@ -15,12 +15,12 @@ export default function App() {
           {/* Subtle film grain texture overlay */}
           <div className="grain-overlay" aria-hidden="true" />
 
-          <div className="min-h-screen bg-paper text-ink flex flex-col bg-topo">
+          <div className="min-h-screen bg-paper text-ink flex flex-col bg-topo app-shell">
             {/* Floating Top Navbar */}
             <Navbar />
 
             {/* Main Application Content */}
-            <main className="flex-1 mx-auto w-full max-w-[1200px] px-4 pt-6">
+            <main className="flex-1 mx-auto w-full max-w-[1640px] px-5 pt-6 sm:px-8 lg:px-12">
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/patient" element={<PatientView />} />
@@ -34,7 +34,7 @@ export default function App() {
 
             {/* App Footer */}
             <footer className="w-full border-t border-hairline py-6 px-4 text-center text-xs text-ink-soft">
-              <div className="mx-auto max-w-[1200px] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="mx-auto max-w-[1640px] flex flex-col sm:flex-row items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
                 <div className="flex items-center gap-2">
                   <span className="font-serif italic text-sm text-ink font-semibold">
                     HealthSafe

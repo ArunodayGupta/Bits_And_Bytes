@@ -35,7 +35,7 @@ export const PatientView: React.FC = () => {
       <PatientSwitcher />
 
       {/* Verdant Clinical Hero Header Band */}
-      <section className="relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 p-8 sm:p-12 shadow-soft">
+      <section className="patient-hero relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 p-8 sm:p-12 shadow-soft">
         {/* Organic blurred blobs */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-moss-500/15 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-teal-700/10 blur-3xl" />
