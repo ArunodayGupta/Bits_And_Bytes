@@ -7,6 +7,22 @@
     <title>HealthSafe – Patient-Owned Medical Records (ABDM / NRCeS)</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('healthsafe-theme');
+          var isDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.dataset.theme = 'dark';
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.dataset.theme = 'light';
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Google Fonts: Instrument Serif, Hanken Grotesk, IBM Plex Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
