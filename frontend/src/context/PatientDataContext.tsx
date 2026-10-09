@@ -8,7 +8,7 @@ import type {
 import { fetchPatientData } from '@/lib/fhir/fetchPatientData';
 import { buildTimeline } from '@/lib/fhir/buildTimeline';
 import { injectRxIdsIntoBundle } from '@/lib/rxId';
-import offlineBundleData from '../../public/op-consultation.json';
+import offlineBundleData from '@/data/op-consultation.json';
 import {
   PatientDataContext,
   type DataSourceType,
