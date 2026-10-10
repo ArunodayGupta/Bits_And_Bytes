@@ -106,17 +106,15 @@ export default function App() {
                     <span className="font-serif italic text-sm text-ink font-semibold">
                       HealthSafe
                     </span>
-                    <span>— Patient-Owned Medical Records</span>
+                    <span>— Your health records, in one place</span>
                   </div>
-                  <div className="flex flex-wrap items-center justify-center gap-3 text-[11px]">
-                    <Link to="/patient" className="hover:text-ink">Patient Dashboard</Link>
-                    <Link to="/clinician" className="hover:text-ink">Clinician Lookup</Link>
-                    <Link to="/admin" className="hover:text-ink font-semibold text-amber-700 dark:text-amber-400">Admin Console</Link>
-                    <a href="https://github.com" className="hover:text-ink">GitHub</a>
-                    <span>•</span>
-                    <span>Secure Health Record Architecture</span>
-                    <span>•</span>
-                    <span>Demo mode with verified medical data.</span>
+                  <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
+                    <Link to="/patient" className="hover:text-ink">Patient</Link>
+                    <Link to="/doctor" className="hover:text-ink">Doctor Portal</Link>
+                    <Link to="/physician" className="hover:text-ink">Physician Portal</Link>
+                    <Link to="/admin" className="hover:text-ink">Admin</Link>
+                    <span>·</span>
+                    <a href="https://abha.abdm.gov.in/abha/v3/" target="_blank" rel="noopener noreferrer" className="hover:text-ink">Get ABHA ID</a>
                   </div>
                 </div>
               </footer>
