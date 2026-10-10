@@ -5,39 +5,42 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
-interface AlternativeItem {
-  branded_medicine: string;
-  prescribed_dosage: string;
-  generic_substitute: string;
-  pmbjp_product_code: string;
-  brand_price_paisa: number;
-  generic_price_paisa: number;
-  monthly_savings_paisa: number;
-  notes: string;
+interface NormalizedMedication {
+  prescribedDrug: string;
+  salt: string;
+  genericAlternative: string;
+  brandCostRupees: number;
+  genericCostRupees: number;
+  monthlySavingsRupees: number;
+  savingsPercentage: number;
+  caution: string | null;
+  dosesPerDay?: number;
 }
 
-interface SavingsData {
+interface NormalizedSavings {
   rx_id: string;
   hospital_name?: string;
   doctor_name?: string;
   issued_on?: string;
-  total_brand_cost_paisa: number;
-  total_generic_cost_paisa: number;
-  total_monthly_savings_paisa: number;
-  alternatives: AlternativeItem[];
-  care_gaps?: Array<{ code: string; title: string; rationale: string; severity: string }>;
+  totalBrandCostRupees: number;
+  totalGenericCostRupees: number;
+  totalMonthlySavingsRupees: number;
+  medications: NormalizedMedication[];
+  unmatched: Array<{ prescribed_drug: string; reason: string }>;
+  disclaimer?: string;
 }
 
 const DEMO_RX_SUGGESTIONS = [
-  { rx_id: 'APL-RR-1410-RAME', label: 'Ramesh Kumar (Metformin & Atorvastatin)' },
-  { rx_id: 'MAX-SD-1808-PRIY', label: 'Priya Sharma (Thyroxine & Multivitamin)' },
-  { rx_id: 'FOR-AK-0511-ARUN', label: 'Arun Patel (Telmisartan & Amlodipine)' },
+  { rx_id: 'APL-RR-1410-RAME', label: 'Ramesh Kumar (Telmisartan & Metformin)' },
+  { rx_id: 'FRT-SS-1809-PRIY', label: 'Priya Sharma (Thyroxine & Calcium)' },
+  { rx_id: 'MNP-AS-0511-ARUN', label: 'Arun Patel (Amlodipine & Atorvastatin)' },
+  { rx_id: 'MAX-SS-1511-KAVI', label: 'Kavita Nair (Glimepiride & Metformin)' },
 ];
 
 export const PhysicianView: React.FC = () => {
   const [rxInput, setRxInput] = useState<string>('APL-RR-1410-RAME');
   const [activeRxId, setActiveRxId] = useState<string>('APL-RR-1410-RAME');
-  const [savingsData, setSavingsData] = useState<SavingsData | null>(null);
+  const [savingsData, setSavingsData] = useState<NormalizedSavings | null>(null);
   const [careGaps, setCareGaps] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -53,18 +56,68 @@ export const PhysicianView: React.FC = () => {
       if (!res.ok) {
         throw new Error(`Prescription ${cleanId} not found or inactive`);
       }
-      const data: SavingsData = await res.json();
-      setSavingsData(data);
+      const raw = await res.json();
+
+      // Normalize medications array from backend
+      const rawMeds: any[] = raw.medications || raw.alternatives || [];
+      const normalizedMeds: NormalizedMedication[] = rawMeds.map((m: any) => {
+        const brandCost = m.monthly_cost_brand != null
+          ? parseFloat(m.monthly_cost_brand)
+          : (m.brand_price_paisa ? m.brand_price_paisa / 100 : 0);
+        const genericCost = m.monthly_cost_generic != null
+          ? parseFloat(m.monthly_cost_generic)
+          : (m.generic_price_paisa ? m.generic_price_paisa / 100 : 0);
+        const savings = m.monthly_savings_rupees != null
+          ? parseFloat(m.monthly_savings_rupees)
+          : (m.monthly_savings_paisa ? m.monthly_savings_paisa / 100 : Math.max(0, brandCost - genericCost));
+        const percent = m.savings_percentage != null
+          ? parseFloat(m.savings_percentage)
+          : (brandCost > 0 ? (savings / brandCost) * 100 : 0);
+
+        return {
+          prescribedDrug: m.prescribed_drug || m.branded_medicine || 'Prescribed Medicine',
+          salt: m.salt || m.prescribed_dosage || '',
+          genericAlternative: m.generic_alternative || m.generic_substitute || 'Jan Aushadhi Generic Alternative',
+          brandCostRupees: brandCost,
+          genericCostRupees: genericCost,
+          monthlySavingsRupees: savings,
+          savingsPercentage: Math.round(percent),
+          caution: m.caution || null,
+          dosesPerDay: m.doses_per_day,
+        };
+      });
+
+      const totalBrand = normalizedMeds.reduce((acc, m) => acc + m.brandCostRupees, 0) || (raw.total_brand_cost_paisa ? raw.total_brand_cost_paisa / 100 : 0);
+      const totalGeneric = normalizedMeds.reduce((acc, m) => acc + m.genericCostRupees, 0) || (raw.total_generic_cost_paisa ? raw.total_generic_cost_paisa / 100 : 0);
+      const totalSavings = raw.total_monthly_savings != null
+        ? parseFloat(raw.total_monthly_savings)
+        : (raw.total_monthly_savings_paisa ? raw.total_monthly_savings_paisa / 100 : (totalBrand - totalGeneric));
+
+      const normalized: NormalizedSavings = {
+        rx_id: raw.rx_id || cleanId,
+        hospital_name: raw.hospital_name,
+        doctor_name: raw.doctor_name,
+        issued_on: raw.issued_on,
+        totalBrandCostRupees: totalBrand,
+        totalGenericCostRupees: totalGeneric,
+        totalMonthlySavingsRupees: totalSavings,
+        medications: normalizedMeds,
+        unmatched: raw.unmatched || [],
+        disclaimer: raw.disclaimer,
+      };
+
+      setSavingsData(normalized);
       setActiveRxId(cleanId);
 
-      // Also check care gaps for the patient if abha is known or from demo
+      // Check care gaps for the patient
       try {
         const gapRes = await fetch('/api/patient/91-1234-5678-9012/care-gaps');
         if (gapRes.ok) {
-          setCareGaps(await gapRes.json());
+          const rawGaps = await gapRes.json();
+          setCareGaps(Array.isArray(rawGaps) ? rawGaps : []);
         }
       } catch {
-        // ignore
+        setCareGaps([]);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to lookup prescription');
@@ -85,8 +138,8 @@ export const PhysicianView: React.FC = () => {
     }
   };
 
-  const formatRupees = (paisa: number) => {
-    return `₹${(paisa / 100).toFixed(0)}`;
+  const formatRupees = (amount: number) => {
+    return `₹${Math.round(amount)}`;
   };
 
   return (
@@ -102,7 +155,7 @@ export const PhysicianView: React.FC = () => {
             Medicine Dispensing & Generic Substitution
           </h1>
           <p className="text-sm text-ink-soft mt-1 max-w-2xl">
-            Input the patient's speakable Rx-ID to inspect prescribed medications, identify Pradhan Mantri Bhartiya Janaushadhi Pariyojana (PMBJP) generic alternatives, and calculate patient savings.
+            Enter the patient's Prescription ID or ABHA ID to review prescribed medicines, find affordable generic alternatives, and calculate savings.
           </p>
         </div>
       </div>
@@ -114,7 +167,7 @@ export const PhysicianView: React.FC = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft" />
             <Input
               type="text"
-              placeholder="Enter speakable Rx-ID (e.g. APL-RR-1410-RAME)..."
+              placeholder="Enter Prescription ID (e.g. APL-RR-1410-RAME)..."
               value={rxInput}
               onChange={(e) => setRxInput(e.target.value.toUpperCase())}
               className="pl-10 font-mono text-sm uppercase h-11 rounded-full"
@@ -166,7 +219,7 @@ export const PhysicianView: React.FC = () => {
                 Prescription Total (Branded)
               </span>
               <p className="mt-2 font-serif text-3xl text-ink font-bold line-through text-ink-soft/70">
-                {formatRupees(savingsData.total_brand_cost_paisa)}
+                {formatRupees(savingsData.totalBrandCostRupees)}
                 <span className="text-xs font-sans text-ink-soft font-normal ml-1">/ month</span>
               </p>
               <p className="text-[11px] text-ink-soft mt-1">Market MRP for proprietary brand packaging</p>
@@ -177,7 +230,7 @@ export const PhysicianView: React.FC = () => {
                 PMBJP Generic Equivalent
               </span>
               <p className="mt-2 font-serif text-3xl text-teal-700 dark:text-teal-300 font-bold">
-                {formatRupees(savingsData.total_generic_cost_paisa)}
+                {formatRupees(savingsData.totalGenericCostRupees)}
                 <span className="text-xs font-sans text-teal-600 font-normal ml-1">/ month</span>
               </p>
               <p className="text-[11px] text-teal-600 dark:text-teal-400 mt-1">Govt certified bio-equivalent generic price</p>
@@ -188,11 +241,11 @@ export const PhysicianView: React.FC = () => {
                 Patient Monthly Savings
               </span>
               <p className="mt-2 font-serif text-3xl text-moss-700 dark:text-moss-300 font-bold">
-                {formatRupees(savingsData.total_monthly_savings_paisa)}
+                {formatRupees(savingsData.totalMonthlySavingsRupees)}
                 <span className="text-xs font-sans text-moss-600 font-normal ml-1">saved / mo</span>
               </p>
               <p className="text-[11px] text-moss-600 dark:text-moss-400 mt-1">
-                Annual cumulative savings: {formatRupees(savingsData.total_monthly_savings_paisa * 12)}
+                Annual cumulative savings: {formatRupees(savingsData.totalMonthlySavingsRupees * 12)}
               </p>
             </Card>
           </div>
@@ -212,7 +265,7 @@ export const PhysicianView: React.FC = () => {
                     className="border-amber-500/40 bg-card text-[11px] font-medium text-ink"
                   >
                     <span className="mr-1 text-amber-600 font-bold">●</span>
-                    {gap.title}: {gap.rationale}
+                    {gap.title}: {gap.message || gap.rationale || 'Monitoring recommended'}
                   </Badge>
                 ))}
               </div>
@@ -254,64 +307,82 @@ export const PhysicianView: React.FC = () => {
 
             <CardContent className="p-0">
               <div className="divide-y divide-hairline">
-                {savingsData.alternatives.map((alt, idx) => {
-                  const savingsPercent = Math.round(
-                    (alt.monthly_savings_paisa / alt.brand_price_paisa) * 100
-                  );
-                  return (
-                    <div
-                      key={idx}
-                      className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-paper-2/40 transition-colors"
-                    >
-                      {/* Left: Medicine Comparison */}
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-ink">{alt.branded_medicine}</span>
-                          <span className="text-xs text-ink-soft">({alt.prescribed_dosage})</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs">
-                          <ArrowRight className="h-3.5 w-3.5 text-teal-600 shrink-0" />
-                          <span className="font-semibold text-teal-700 dark:text-teal-300">
-                            Generic Alternative: {alt.generic_substitute}
-                          </span>
-                          <span className="rounded bg-teal-500/10 px-1.5 py-0.5 font-mono text-[10px] text-teal-700 dark:text-teal-400">
-                            PMBJP #{alt.pmbjp_product_code}
-                          </span>
-                        </div>
-
-                        <p className="text-[11px] text-ink-soft">{alt.notes}</p>
+                {savingsData.medications.map((m, idx) => (
+                  <div
+                    key={idx}
+                    className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-paper-2/40 transition-colors"
+                  >
+                    {/* Left: Medicine Comparison */}
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-ink">{m.prescribedDrug}</span>
+                        {m.salt && <span className="text-xs text-ink-soft">({m.salt})</span>}
                       </div>
 
-                      {/* Right: Price & Savings Card */}
-                      <div className="flex items-center gap-6 border-t md:border-t-0 border-hairline pt-3 md:pt-0">
-                        <div className="text-right">
-                          <span className="text-[10px] uppercase tracking-wider text-ink-soft block">
-                            Cost Comparison
-                          </span>
-                          <span className="font-mono text-xs line-through text-ink-soft">
-                            {formatRupees(alt.brand_price_paisa)}
-                          </span>
-                          <span className="font-mono text-sm font-bold text-teal-700 dark:text-teal-300 ml-2">
-                            {formatRupees(alt.generic_price_paisa)}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <ArrowRight className="h-3.5 w-3.5 text-teal-600 shrink-0" />
+                        <span className="font-semibold text-teal-700 dark:text-teal-300">
+                          Generic Alternative: {m.genericAlternative}
+                        </span>
+                        <span className="rounded bg-teal-500/10 px-1.5 py-0.5 font-mono text-[10px] text-teal-700 dark:text-teal-400">
+                          PMBJP Bioequivalent
+                        </span>
+                      </div>
 
-                        <div className="rounded-16 bg-moss-500/10 border border-moss-500/25 px-3 py-1.5 text-center min-w-[90px]">
-                          <span className="text-[9px] uppercase tracking-wider text-moss-700 dark:text-moss-400 font-semibold block">
-                            Save
-                          </span>
-                          <span className="font-mono text-xs font-bold text-moss-700 dark:text-moss-300">
-                            {savingsPercent}%
-                          </span>
-                          <span className="text-[9px] text-moss-600 block">
-                            -{formatRupees(alt.monthly_savings_paisa)}
-                          </span>
-                        </div>
+                      {m.caution && (
+                        <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {m.caution}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Right: Price & Savings Card */}
+                    <div className="flex items-center gap-6 border-t md:border-t-0 border-hairline pt-3 md:pt-0">
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase tracking-wider text-ink-soft block">
+                          Cost Comparison
+                        </span>
+                        <span className="font-mono text-xs line-through text-ink-soft">
+                          {formatRupees(m.brandCostRupees)}
+                        </span>
+                        <span className="font-mono text-sm font-bold text-teal-700 dark:text-teal-300 ml-2">
+                          {formatRupees(m.genericCostRupees)}
+                        </span>
+                      </div>
+
+                      <div className="rounded-16 bg-moss-500/10 border border-moss-500/25 px-3 py-1.5 text-center min-w-[90px]">
+                        <span className="text-[9px] uppercase tracking-wider text-moss-700 dark:text-moss-400 font-semibold block">
+                          Save
+                        </span>
+                        <span className="font-mono text-xs font-bold text-moss-700 dark:text-moss-300">
+                          {m.savingsPercentage}%
+                        </span>
+                        <span className="text-[9px] text-moss-600 block">
+                          -{formatRupees(m.monthlySavingsRupees)}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
+
+                {/* Unmatched medications, if any */}
+                {savingsData.unmatched?.map((un, idx) => (
+                  <div
+                    key={`unmatched-${idx}`}
+                    className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-paper-2/30"
+                  >
+                    <div className="space-y-1">
+                      <span className="font-semibold text-sm text-ink">{un.prescribed_drug}</span>
+                      <p className="text-xs text-ink-soft">
+                        {un.reason || 'No direct Jan Aushadhi generic equivalent found in formulary'}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs text-ink-soft">
+                      Brand Dispensing Only
+                    </Badge>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
