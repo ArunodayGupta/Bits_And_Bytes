@@ -206,7 +206,7 @@ export const Navbar: React.FC = () => {
                   to="/signup"
                   className="rounded-full bg-moss-600 px-4 py-2 text-xs font-semibold text-paper transition-colors hover:bg-moss-700"
                 >
-                  Sign Up
+                  Doctor Sign Up
                 </Link>
               )}
             </div>
@@ -337,7 +337,7 @@ export const Navbar: React.FC = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center rounded-full bg-moss-600 py-2 text-xs font-semibold text-paper"
               >
-                Sign Up
+                Doctor Sign Up
               </Link>
             </div>
           )}

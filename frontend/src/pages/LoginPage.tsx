@@ -46,6 +46,17 @@ export const LoginPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [demoPatients, setDemoPatients] = useState<DemoPatientChip[]>(DEFAULT_DEMO_PATIENTS);
 
+  const [hasConsented, setHasConsented] = useState<boolean>(true);
+  const [doctorRegInput, setDoctorRegInput] = useState<string>('MCI-2018-98421');
+  const [doctorNameInput, setDoctorNameInput] = useState<string>('Dr. Rajesh Rao, MD');
+  const [doctorHospitalInput, setDoctorHospitalInput] = useState<string>('Apollo Hospitals');
+  const [isVerifyingDoctor, setIsVerifyingDoctor] = useState<boolean>(false);
+
+  const [physicianRegInput, setPhysicianRegInput] = useState<string>('PMBJP-KEN-0428');
+  const [physicianNameInput, setPhysicianNameInput] = useState<string>('Dr. Dispensary Physician');
+  const [physicianDispensaryInput, setPhysicianDispensaryInput] = useState<string>('Pradhan Mantri Jan Aushadhi Kendra #0428');
+  const [isVerifyingPhysician, setIsVerifyingPhysician] = useState<boolean>(false);
+
   const otpInputRef = useRef<HTMLInputElement>(null);
 
   // Switch tab if role/tab specified in URL (e.g. /login?role=doctor)
@@ -115,6 +126,11 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
+    if (!hasConsented) {
+      setErrorMsg('Please grant permission to access your records using your ABHA ID.');
+      return;
+    }
+
     const found = demoPatients.some(
       (p) => p.abha_id.replace(/\D/g, '') === abhaInput.replace(/\D/g, '')
     );
@@ -135,6 +151,11 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
+    if (!hasConsented) {
+      setErrorMsg('Please grant permission to access your records using your ABHA ID.');
+      return;
+    }
+
     if (otpInput !== '123456') {
       setErrorMsg('Invalid OTP. Please enter demo OTP: 123456');
       return;
@@ -148,7 +169,6 @@ export const LoginPage: React.FC = () => {
       );
       const targetAbha = matched ? matched.abha_id : abhaInput;
 
-
       const profile = availablePatients.find(
         (p) => p.abha.replace(/\D/g, '') === targetAbha.replace(/\D/g, '')
       );
@@ -161,14 +181,32 @@ export const LoginPage: React.FC = () => {
     }, 400);
   };
 
-  const handlePhysicianContinue = () => {
-    loginPhysician('Dr. Dispensary Physician');
-    navigate('/physician', { replace: true });
+  const handlePhysicianVerifyAndContinue = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsVerifyingPhysician(true);
+    setTimeout(() => {
+      setIsVerifyingPhysician(false);
+      loginPhysician(physicianNameInput || 'Dr. Dispensary Physician', {
+        regNumber: physicianRegInput || 'PMBJP-KEN-0428',
+        council: 'Pharmacy Council of India (PCI)',
+        dispensary: physicianDispensaryInput || 'Pradhan Mantri Jan Aushadhi Kendra #0428',
+      });
+      navigate('/physician', { replace: true });
+    }, 450);
   };
 
-  const handleDoctorContinue = () => {
-    loginDoctor('Dr. Rajesh Rao, MD');
-    navigate('/doctor', { replace: true });
+  const handleDoctorVerifyAndContinue = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsVerifyingDoctor(true);
+    setTimeout(() => {
+      setIsVerifyingDoctor(false);
+      loginDoctor(doctorNameInput || 'Dr. Rajesh Rao, MD', {
+        regNumber: doctorRegInput || 'MCI-2018-98421',
+        council: 'National Medical Commission (NMC)',
+        hospital: doctorHospitalInput || 'Apollo Hospitals',
+      });
+      navigate('/doctor', { replace: true });
+    }, 450);
   };
 
   const handleAdminContinue = () => {
@@ -279,6 +317,28 @@ export const LoginPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* ABDM Data Permission / Consent Checkbox */}
+                  <div className="rounded-20 border border-moss-500/30 bg-moss-50/70 dark:bg-moss-950/20 p-3.5 space-y-2">
+                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        id="abdm-consent-checkbox"
+                        checked={hasConsented}
+                        onChange={(e) => {
+                          setHasConsented(e.target.checked);
+                          setErrorMsg(null);
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-hairline text-moss-600 focus:ring-moss-500 cursor-pointer shrink-0 accent-moss-600"
+                      />
+                      <div className="text-xs text-ink leading-relaxed">
+                        <span className="font-semibold text-moss-800 dark:text-moss-300">
+                          Data Access Permission:
+                        </span>{' '}
+                        I grant permission to HealthSafe to access and retrieve my medical records (prescriptions, encounters, lab tests) using my Government ABHA ID under the Ayushman Bharat Digital Mission (ABDM) framework and DPDP Act.
+                      </div>
+                    </label>
+                  </div>
+
                   {errorMsg && (
                     <div
                       role="alert"
@@ -292,7 +352,7 @@ export const LoginPage: React.FC = () => {
 
                   <Button
                     type="submit"
-                    disabled={isLoading || abhaInput.replace(/\D/g, '').length !== 14}
+                    disabled={isLoading || abhaInput.replace(/\D/g, '').length !== 14 || !hasConsented}
                     className="w-full rounded-full"
                   >
                     {isLoading ? (
@@ -377,43 +437,141 @@ export const LoginPage: React.FC = () => {
               )}
             </TabsContent>
 
-            {/* PHYSICIAN TAB */}
-            <TabsContent value="physician" className="space-y-4 pt-2 text-center">
-              <div className="rounded-20 border border-teal-500/20 bg-teal-500/5 p-4 text-left space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300">
-                  <Pill className="h-4 w-4 text-teal-600" />
-                  Physician Portal
+            {/* PHYSICIAN / CLINICIAN TAB WITH PROFESSIONAL VERIFICATION */}
+            <TabsContent value="physician" className="space-y-4 pt-1">
+              <div className="rounded-20 border border-teal-500/20 bg-teal-500/5 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300">
+                    <Pill className="h-4 w-4 text-teal-600" />
+                    Physician & Dispensary Portal
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/30 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-300">
+                    <ShieldCheck className="h-3 w-3 text-teal-600" />
+                    PCI / PMBJP Verified
+                  </span>
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Enter a patient's Prescription ID or Patient ID to review prescribed medicines, find generic alternatives, and calculate savings.
+                  Review prescriptions, map approved Jan Aushadhi generic equivalents, and calculate patient savings with verified dispensary credentials.
                 </p>
               </div>
+
+              {/* Verified Demo Clinician Profile */}
+              <div className="rounded-20 border border-hairline bg-paper-2 p-3.5 space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft block">
+                  Active Licensed Profile:
+                </span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-ink">{physicianNameInput}</p>
+                    <p className="text-[11px] text-ink-soft font-mono">
+                      License #{physicianRegInput} · {physicianDispensaryInput}
+                    </p>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    ✓ Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Professional Credential Inputs */}
+              <div className="space-y-2.5">
+                <div>
+                  <label className="text-[11px] font-medium text-ink-soft block mb-1">
+                    Pharmacy Council License / PMBJP Kendra ID
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. PMBJP-KEN-0428 or PCI-DL-2020"
+                    value={physicianRegInput}
+                    onChange={(e) => setPhysicianRegInput(e.target.value)}
+                    className="h-9 font-mono text-xs rounded-xl"
+                  />
+                </div>
+              </div>
+
               <Button
                 type="button"
-                onClick={handlePhysicianContinue}
-                className="w-full rounded-full bg-teal-600 hover:bg-teal-700 text-paper font-semibold"
+                onClick={handlePhysicianVerifyAndContinue}
+                disabled={isVerifyingPhysician}
+                className="w-full rounded-full bg-teal-600 hover:bg-teal-700 text-paper font-semibold h-11 text-xs"
               >
-                Continue as Physician
+                {isVerifyingPhysician ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying PMBJP / Pharmacy Registry...
+                  </>
+                ) : (
+                  'Verify License & Enter Physician Portal'
+                )}
               </Button>
             </TabsContent>
 
-            {/* DOCTOR TAB */}
-            <TabsContent value="doctor" className="space-y-4 pt-2 text-center">
-              <div className="rounded-20 border border-sky-500/20 bg-sky-500/5 p-4 text-left space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-sky-800 dark:text-sky-300">
-                  <Stethoscope className="h-4 w-4 text-sky-600" />
-                  Doctor Portal
+            {/* DOCTOR TAB WITH PROFESSIONAL VERIFICATION */}
+            <TabsContent value="doctor" className="space-y-4 pt-1">
+              <div className="rounded-20 border border-sky-500/20 bg-sky-500/5 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-sky-800 dark:text-sky-300">
+                    <Stethoscope className="h-4 w-4 text-sky-600" />
+                    Doctor Clinical Portal
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+                    <ShieldCheck className="h-3 w-3 text-sky-600" />
+                    NMC / SMC Verified
+                  </span>
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Look up patient medical records, lab reports, and write verified digital prescriptions.
+                  Medical practitioners write verified electronic prescriptions and look up patient longitudinal histories.
                 </p>
               </div>
+
+              {/* Verified Demo Doctor Profile */}
+              <div className="rounded-20 border border-hairline bg-paper-2 p-3.5 space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft block">
+                  Active Licensed Practitioner:
+                </span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-ink">{doctorNameInput}</p>
+                    <p className="text-[11px] text-ink-soft font-mono">
+                      NMC Reg #{doctorRegInput} · {doctorHospitalInput}
+                    </p>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    ✓ Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Professional Credential Inputs */}
+              <div className="space-y-2.5">
+                <div>
+                  <label className="text-[11px] font-medium text-ink-soft block mb-1">
+                    Medical Council Registration Number (NMC / State SMC)
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. MCI-2018-98421 or DMC-52810"
+                    value={doctorRegInput}
+                    onChange={(e) => setDoctorRegInput(e.target.value)}
+                    className="h-9 font-mono text-xs rounded-xl"
+                  />
+                </div>
+              </div>
+
               <Button
                 type="button"
-                onClick={handleDoctorContinue}
-                className="w-full rounded-full bg-sky-600 hover:bg-sky-700 text-paper font-semibold"
+                onClick={handleDoctorVerifyAndContinue}
+                disabled={isVerifyingDoctor}
+                className="w-full rounded-full bg-sky-600 hover:bg-sky-700 text-paper font-semibold h-11 text-xs"
               >
-                Continue as Doctor
+                {isVerifyingDoctor ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying with National Medical Commission (NMC)...
+                  </>
+                ) : (
+                  'Verify Credentials & Enter Doctor Portal'
+                )}
               </Button>
             </TabsContent>
 
@@ -439,13 +597,16 @@ export const LoginPage: React.FC = () => {
           </Tabs>
         </CardContent>
 
-        <CardFooter className="bg-paper-2/50 border-t border-hairline py-4 px-6 flex flex-col items-center justify-center gap-1.5 text-xs text-ink-soft">
-          <div>
-            <span>New patient?</span>
+        <CardFooter className="bg-paper-2/50 border-t border-hairline py-4 px-6 flex flex-col items-center justify-center gap-2 text-xs text-ink-soft">
+          <div className="text-center">
+            <span>Are you a Doctor or Clinician?</span>
             <Link to="/signup" className="ml-1.5 font-semibold text-moss-700 hover:underline dark:text-moss-400">
-              Create an account
+              Register & verify medical license
             </Link>
           </div>
+          <p className="text-[11px] text-ink-soft text-center leading-tight">
+            Patients do not sign up here — log in with your Government ABHA ID.
+          </p>
           <p className="text-[10px] text-ink-soft text-center opacity-80">
             Demo only: no real authentication and no real ABDM connection
           </p>
