@@ -2,9 +2,9 @@
   "APLRR1410RAME": {
     "rx_id": "APL-RR-1410-RAME",
     "norm_rx": "APLRR1410RAME",
-    "dispensed": true,
-    "dispensed_at": "2026-10-10T11:25:08.269709+00:00",
-    "pharmacist_name": "Test Pharmacy",
+    "dispensed": false,
+    "dispensed_at": null,
+    "pharmacist_name": "Apollo Jan Aushadhi Pharmacy",
     "notes": "Dispensed PMBJP Jan Aushadhi generic bioequivalent substitutes"
   }
 }
