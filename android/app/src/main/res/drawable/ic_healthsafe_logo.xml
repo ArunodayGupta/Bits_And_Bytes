@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Outer Safe / Locker Outline (Rounded Vault Door) -->
+    <path
+        android:fillColor="#4F6B3A"
+        android:pathData="M10,6 C7.79,6 6,7.79 6,10 L6,38 C6,40.21 7.79,42 10,42 L38,42 C40.21,42 42,40.21 42,38 L42,10 C42,7.79 40.21,6 38,6 L10,6 Z M10,9 L38,9 C38.55,9 39,9.45 39,10 L39,38 C39,38.55 38.55,39 38,39 L10,39 C9.45,39 9,38.55 9,38 L9,10 C9,9.45 9.45,9 10,9 Z" />
+
+    <!-- Safe Door Inner Panel Bevel -->
+    <path
+        android:fillColor="#E4EBD6"
+        android:pathData="M11,11 L37,11 C38.1,11 39,11.9 39,13 L39,35 C39,36.1 38.1,37 37,37 L11,37 C9.9,37 9,36.1 9,35 L9,13 C9,11.9 9.9,11 11,11 Z" />
+
+    <!-- Safe Vault Door Hinges (Left side) -->
+    <path
+        android:fillColor="#1D2A22"
+        android:pathData="M7,14 L10,14 L10,18 L7,18 Z M7,30 L10,30 L10,34 L7,34 Z" />
+
+    <!-- Safe Lock Dial Rim -->
+    <path
+        android:fillColor="#4F6B3A"
+        android:pathData="M24,14 C18.48,14 14,18.48 14,24 C14,29.52 18.48,34 24,34 C29.52,34 34,29.52 34,24 C34,18.48 29.52,14 24,14 Z" />
+
+    <!-- Safe Inner Dial -->
+    <path
+        android:fillColor="#FFFDF7"
+        android:pathData="M24,16.5 C19.86,16.5 16.5,19.86 16.5,24 C16.5,28.14 19.86,31.5 24,31.5 C28.14,31.5 31.5,28.14 31.5,24 C31.5,19.86 28.14,16.5 24,16.5 Z" />
+
+    <!-- Health Cross at the Heart of the Vault Dial -->
+    <path
+        android:fillColor="#4F6B3A"
+        android:pathData="M22.5,19 L25.5,19 L25.5,22.5 L29,22.5 L29,25.5 L25.5,25.5 L25.5,29 L22.5,29 L22.5,25.5 L19,25.5 L19,22.5 L22.5,22.5 Z" />
+
+    <!-- Vault Dial Notches / Gold Locking Indicator -->
+    <path
+        android:fillColor="#C9A24B"
+        android:pathData="M24,17.5 L24,19.5 M30.5,24 L28.5,24 M24,30.5 L24,28.5 M17.5,24 L19.5,24"
+        android:strokeColor="#C9A24B"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+
+    <!-- Vault Safe Wheel Wheel Handle Notch -->
+    <path
+        android:fillColor="#C9A24B"
+        android:pathData="M33,23.2 L36,23.2 L36,24.8 L33,24.8 Z" />
+</vector>

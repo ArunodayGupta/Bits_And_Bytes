@@ -1,0 +1,78 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    branches:
+      - feat/android
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle Cache
+        uses: actions/setup-gradle@v3
+
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x ./android/gradlew
+
+      - name: Build Release APK
+        working-directory: ./android
+        run: ./gradlew assembleRelease
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release-assets
+          cp android/app/build/outputs/apk/release/app-release.apk release-assets/HealthSafe-v1.0.0.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthSafe-v1.0.0-APK
+          path: release-assets/HealthSafe-v1.0.0.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/feat/android' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0-android' }}
+          name: HealthSafe Android App v1.0.0
+          body: |
+            ### 📱 HealthSafe Android App v1.0.0
+
+            Official release APK for **HealthSafe** - unified Ayushman Bharat Digital Mission (ABDM) electronic health records and clinician consultation suite.
+
+            #### ✨ Key Features
+            - 📑 **Patient Health Record Timeline**: Auto-synced longitudinal health history, lab biomarker charts, and digital prescriptions.
+            - 🔒 **Unguessable Cryptographic Rx Tokens**: Temporary speakable tokens (e.g. `RX-7F3A-9K2M`) to share read-only EHR access securely.
+            - 🩺 **Doctor Clinical Portal**: Instant patient EHR lookups, longitudinal trend views, and tamper-proof e-prescription generation.
+            - 💊 **Generic Medicine Savings**: Real-time Jan Aushadhi (PMBJP) price comparison and bioequivalence mapping.
+            - 📷 **Medical OCR Digitization**: Fast biomarker capture from camera or test paper images.
+            - 🌐 **Direct ABHA ID Integration**: Live registration links to the official ABDM portal (`https://abha.abdm.gov.in/abha/v3/`).
+
+            #### 📥 Download & Install
+            1. Download `HealthSafe-v1.0.0.apk` below.
+            2. Open on your Android device (supports Android 7.0+).
+            3. If prompted, allow "Install Unknown Apps" for your file manager.
+          draft: false
+          prerelease: false
+          files: |
+            release-assets/HealthSafe-v1.0.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
