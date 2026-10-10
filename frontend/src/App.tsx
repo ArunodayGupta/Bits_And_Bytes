@@ -38,7 +38,7 @@ export default function App() {
               <Navbar />
 
               {/* Main Application Content */}
-              <main className="flex-1 mx-auto w-full max-w-[1640px] px-5 pt-6 sm:px-8 lg:px-12">
+              <main className="flex-1 mx-auto w-full max-w-[1640px] px-3.5 pt-4 sm:pt-6 sm:px-8 lg:px-12">
                 <Routes>
                   {/* Landing page at root / (redirects if authenticated) */}
                   <Route path="/" element={<LandingPage />} />

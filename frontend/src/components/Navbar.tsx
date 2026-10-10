@@ -26,26 +26,26 @@ export const Navbar: React.FC = () => {
       : '/patient';
 
   return (
-    <header className="sticky top-4 z-40 mx-auto w-full max-w-[1640px] px-5 sm:px-8 lg:px-12">
+    <header className="sticky top-2 sm:top-4 z-40 mx-auto w-full max-w-[1640px] px-3 sm:px-8 lg:px-12">
       <nav
         aria-label="Main Navigation"
-        className="glass-card flex items-center justify-between rounded-full border border-hairline px-4 py-2.5 shadow-elevated transition-all"
+        className="glass-card flex items-center justify-between rounded-full border border-hairline px-3 sm:px-4 py-2 sm:py-2.5 shadow-elevated transition-all"
       >
         {/* Left: Brand Logo & User Role Identity */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Brand Logo - links to role dashboard when logged in, or root when guest */}
           <Link
             to={isAuthenticated ? dashboardRoute : '/'}
-            className="flex items-center gap-2 font-serif text-xl text-ink hover:opacity-95 transition-opacity"
+            className="flex items-center gap-1.5 sm:gap-2 font-serif text-lg sm:text-xl text-ink hover:opacity-95 transition-opacity shrink-0"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper">
-              <Leaf className="h-4 w-4" />
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-moss-600 text-paper">
+              <Leaf className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
             <span>HealthSafe</span>
           </Link>
 
           {isAuthenticated && (
-            <div className="flex items-center gap-2.5">
+            <div className="hidden sm:flex items-center gap-2.5">
               {/* Only Patient role sees PatientCard */}
               {role === 'patient' && (
                 <NavLink to="/patient" className="hover:opacity-90 transition-opacity">
@@ -185,10 +185,12 @@ export const Navbar: React.FC = () => {
                   logout();
                   navigate('/login');
                 }}
-                className="flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 px-3.5 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                className="flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                title="Logout from HealthSafe"
+                aria-label="Logout"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                <span>Logout</span>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           ) : (

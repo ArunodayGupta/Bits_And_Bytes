@@ -64,7 +64,7 @@ function ShareToDoctor({
               </span>
               <span className="text-[10px] text-moss-600 font-mono">Speakable Rx-ID</span>
             </div>
-            <p className="font-mono text-xl sm:text-2xl font-bold text-ink tracking-wider mt-1">{code}</p>
+            <p className="font-mono text-lg sm:text-2xl font-bold text-ink tracking-wider mt-1 break-all sm:break-normal">{code}</p>
           </div>
           <button
             type="button"
@@ -90,7 +90,7 @@ function ShareToDoctor({
               </span>
               <span className="text-[10px] text-ink-soft font-mono">Verified ABDM ID</span>
             </div>
-            <p className="font-mono text-xl sm:text-2xl font-bold text-ink tracking-wider mt-1">{displayAbha}</p>
+            <p className="font-mono text-lg sm:text-2xl font-bold text-ink tracking-wider mt-1 break-all sm:break-normal">{displayAbha}</p>
           </div>
           <button
             type="button"
@@ -182,7 +182,7 @@ export const PatientView: React.FC = () => {
       {!abhaId && <PatientSwitcher />}
 
       {/* Hero Header */}
-      <section className="patient-hero relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 dark:from-[#17241B] dark:via-[#1B291F] dark:to-[#141E17] dark:border-white/10 p-6 sm:p-10 md:p-12 shadow-soft">
+      <section className="patient-hero relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 dark:from-[#17241B] dark:via-[#1B291F] dark:to-[#141E17] dark:border-white/10 p-5 sm:p-10 md:p-12 shadow-soft">
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-moss-500/15 dark:bg-moss-500/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-teal-700/10 dark:bg-teal-700/15 blur-3xl" />
 

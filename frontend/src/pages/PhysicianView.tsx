@@ -325,7 +325,7 @@ export const PhysicianView: React.FC = () => {
               PMBJP Licensed · {medicalRegNumber || 'PMBJP-KEN-0428'}
             </span>
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl text-ink font-bold">
+          <h1 className="font-serif text-2xl sm:text-4xl text-ink font-bold">
             Medicine Dispensing & Generic Substitution
           </h1>
           <p className="text-sm text-ink-soft mt-1 max-w-2xl">
@@ -335,7 +335,7 @@ export const PhysicianView: React.FC = () => {
       </div>
 
       {/* Lookup Bar */}
-      <Card className="rounded-24 border border-hairline bg-card p-6 shadow-soft">
+      <Card className="rounded-24 border border-hairline bg-card p-4 sm:p-6 shadow-soft">
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft" />
@@ -458,16 +458,16 @@ export const PhysicianView: React.FC = () => {
 
           {/* Prescribed Medications & Jan Aushadhi Substitutes Table */}
           <Card className="rounded-24 border border-hairline bg-card shadow-soft overflow-hidden">
-            <CardHeader className="border-b border-hairline py-4 px-6 flex flex-row items-center justify-between">
+            <CardHeader className="border-b border-hairline py-4 px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="font-serif text-xl">Medicine Substitution & Dispensing Map</CardTitle>
                 <CardDescription className="text-xs">
                   Active prescription: <span className="font-mono font-semibold text-ink">{savingsData.rx_id}</span>
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
                 {dispensed && (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
                     <CheckCircle2 className="h-3 w-3" />
                     Saved in DB
                   </span>
@@ -506,7 +506,7 @@ export const PhysicianView: React.FC = () => {
                 {savingsData.medications.map((m, idx) => (
                   <div
                     key={idx}
-                    className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-paper-2/40 transition-colors"
+                    className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-paper-2/40 transition-colors"
                   >
                     {/* Left: Medicine Comparison */}
                     <div className="space-y-1.5 flex-1">
@@ -534,7 +534,7 @@ export const PhysicianView: React.FC = () => {
                     </div>
 
                     {/* Right: Price & Savings Card */}
-                    <div className="flex items-center gap-6 border-t md:border-t-0 border-hairline pt-3 md:pt-0">
+                    <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-6 border-t md:border-t-0 border-hairline pt-3 md:pt-0 w-full md:w-auto">
                       <div className="text-right">
                         <span className="text-[10px] uppercase tracking-wider text-ink-soft block">
                           Cost Comparison

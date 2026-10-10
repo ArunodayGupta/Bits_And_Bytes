@@ -309,7 +309,7 @@ export const DoctorView: React.FC = () => {
               NMC Verified · {medicalRegNumber || 'MCI-2018-98421'}
             </span>
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl text-ink font-bold">
+          <h1 className="font-serif text-2xl sm:text-4xl text-ink font-bold">
             Electronic Prescriptions & Patient History
           </h1>
           <p className="text-sm text-ink-soft mt-1 max-w-2xl">
@@ -318,7 +318,7 @@ export const DoctorView: React.FC = () => {
         </div>
 
         {/* Tab Toggle */}
-        <div className="flex items-center rounded-full bg-paper-2 p-1 border border-hairline shrink-0">
+        <div className="flex items-center rounded-full bg-paper-2 p-1 border border-hairline shrink-0 w-full sm:w-auto justify-between sm:justify-start">
           <button
             type="button"
             onClick={() => setActiveTab('create')}
