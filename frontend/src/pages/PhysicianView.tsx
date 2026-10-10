@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Pill, Search, ShieldAlert, Sparkles, TrendingDown, ArrowRight, CheckCircle2, AlertCircle, Building2, User, FileText, Printer, Stethoscope } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ const DEMO_RX_SUGGESTIONS = [
 ];
 
 export const PhysicianView: React.FC = () => {
+  const { medicalRegNumber, hospitalAffiliation } = useAuth();
   const [rxInput, setRxInput] = useState<string>('APL-RR-1410-RAME');
   const [activeRxId, setActiveRxId] = useState<string>('APL-RR-1410-RAME');
   const [savingsData, setSavingsData] = useState<NormalizedSavings | null>(null);
@@ -147,9 +149,15 @@ export const PhysicianView: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-hairline pb-5">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-teal-500/10 border border-teal-500/30 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300 mb-2">
-            <Stethoscope className="h-3.5 w-3.5 text-teal-600" />
-            Physician & Pharmacist Portal
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-teal-500/10 border border-teal-500/30 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
+              <Stethoscope className="h-3.5 w-3.5 text-teal-600" />
+              Physician & Pharmacist Portal
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+              PMBJP Licensed · {medicalRegNumber || 'PMBJP-KEN-0428'}
+            </span>
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl text-ink font-bold">
             Medicine Dispensing & Generic Substitution

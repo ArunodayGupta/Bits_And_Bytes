@@ -56,8 +56,7 @@ export const SavingsCard: React.FC<SavingsCardProps> = ({
       setIsLoading(true);
       setHasError(false);
 
-      // In offline mode, or as fallback, read exported demo asset
-      const loadOfflineAsset = async () => {
+      const loadFallbackAsset = async () => {
         try {
           const res = await fetch('/demo/sample-savings.json');
           if (res.ok) {
@@ -71,26 +70,18 @@ export const SavingsCard: React.FC<SavingsCardProps> = ({
         return false;
       };
 
-      if (source === 'offline') {
-        const ok = await loadOfflineAsset();
-        if (!ok && !isCancelled) setHasError(true);
-        if (!isCancelled) setIsLoading(false);
-        return;
-      }
-
-      // Try Backend endpoint
+      // Query Backend endpoint
       try {
         const response = await fetch(`/api/prescription/${encodeURIComponent(effectiveRxId)}/savings`);
         if (response.ok) {
           const json = (await response.json()) as SavingsResponse;
           if (!isCancelled) setData(json);
         } else {
-          // Fallback to demo offline asset for sample Rx-ID
-          const fallbackOk = await loadOfflineAsset();
+          const fallbackOk = await loadFallbackAsset();
           if (!fallbackOk && !isCancelled) setHasError(true);
         }
       } catch {
-        const fallbackOk = await loadOfflineAsset();
+        const fallbackOk = await loadFallbackAsset();
         if (!fallbackOk && !isCancelled) setHasError(true);
       } finally {
         if (!isCancelled) setIsLoading(false);

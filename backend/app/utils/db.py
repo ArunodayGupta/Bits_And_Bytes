@@ -19,7 +19,11 @@ from typing import Any
 
 import httpx
 from dotenv import load_dotenv
-from supabase import Client, create_client
+try:
+    from supabase import Client, create_client
+except (ImportError, AttributeError):
+    Client = Any  # type: ignore
+    create_client = None  # type: ignore
 
 from app.config import settings
 
@@ -29,8 +33,10 @@ SUPABASE_URL = settings.supabase_url or os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = settings.supabase_service_role_key or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 
-def get_supabase() -> Client:
+def get_supabase() -> Any:
     """Uses the service role key to bypass RLS for demo purposes."""
+    if create_client is None:
+        raise RuntimeError("supabase client library not available")
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or "")
 
 DEFAULT_DEMO_PATIENTS: list[dict[str, str]] = [
@@ -44,6 +50,8 @@ DEFAULT_DEMO_PATIENTS: list[dict[str, str]] = [
 
 # In-memory session store for confirmed scans in offline or test mode
 _OFFLINE_SCAN_STORE: dict[str, list[dict[str, Any]]] = {}
+# In-memory store for newly created prescriptions in offline or test mode
+_OFFLINE_PRESCRIPTIONS: dict[str, dict[str, Any]] = {}
 
 
 def _get_headers() -> dict[str, str]:
@@ -274,6 +282,12 @@ def get_clinical_resources_for_care_gaps(abha_id: str) -> list[dict[str, Any]]:
 def get_prescription_medications(rx_id: str) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     """Retrieve prescription details and associated MedicationRequests for demo patients."""
     norm_rx = normalize_rx_id(rx_id)
+
+    # Check newly created in-memory prescriptions
+    for stored_id, data in _OFFLINE_PRESCRIPTIONS.items():
+        if normalize_rx_id(stored_id) == norm_rx:
+            log_access("savings", stored_id, True)
+            return data["rx"], data["medications"]
 
     if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
         try:
@@ -796,11 +810,13 @@ def create_prescription_in_db(
         except Exception:
             pass
 
-    # Generate speakable Rx-ID: e.g. APL-DOC-1010-RAME23
-    initials = "".join([w[0] for w in patient_name.split() if w])[:4].upper() or "PATI"
-    day_month = datetime.now().strftime("%d%m")
-    rand_suffix = f"{random.randint(10, 99)}"
-    rx_id = f"APL-DOC-{day_month}-{initials}{rand_suffix}"
+    # Generate unguessable, high-entropy unique Rx-ID (e.g. RX-7K9M-4W2P)
+    # Privacy protection: Uses cryptographically secure random characters (not guessable from patient initials or date)
+    import secrets
+    c_alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+    p1 = "".join(secrets.choice(c_alphabet) for _ in range(4))
+    p2 = "".join(secrets.choice(c_alphabet) for _ in range(4))
+    rx_id = f"RX-{p1}-{p2}"
     issued_on = datetime.now().strftime("%Y-%m-%d")
 
     # If Supabase is connected, write row to prescriptions and fhir_resources
@@ -886,6 +902,36 @@ def create_prescription_in_db(
         except Exception:
             pass
 
+    # Store in memory for instant retrieval in offline or test mode
+    _OFFLINE_PRESCRIPTIONS[rx_id] = {
+        "rx": {
+            "rx_id": rx_id,
+            "patient_name": patient_name,
+            "patient_id": patient_id or f"pat-{norm_abha.replace('-', '')}",
+            "abha_id": norm_abha,
+            "hospital_name": hospital_name or "Apollo Hospitals",
+            "doctor_name": doctor_name or "Dr. Rajesh Rao",
+            "issued_on": issued_on,
+            "diagnosis": diagnosis,
+        },
+        "medications": [
+            {
+                "fhir_id": f"med-{idx+1}",
+                "raw_json": {
+                    "resourceType": "MedicationRequest",
+                    "id": f"med-{idx+1}",
+                    "medicationCodeableConcept": {"text": med.get("name", "Prescribed Medicine")},
+                    "dosageInstruction": [{"text": f"{med.get('dosage', '1 tablet')} - {med.get('frequency', 'Once daily')}. {med.get('instructions', '')}"}],
+                    "authoredOn": f"{issued_on}T10:00:00Z",
+                    "requester": {"display": doctor_name},
+                },
+                "summary_title": med.get("name", "Prescribed Medicine"),
+                "summary_value": med.get("dosage", "1 tablet"),
+            }
+            for idx, med in enumerate(medications)
+        ],
+    }
+
     return {
         "rx_id": rx_id,
         "patient_name": patient_name,
@@ -901,9 +947,30 @@ def create_prescription_in_db(
 
 def get_patient_details_for_doctor(abha_id: str) -> dict[str, Any] | None:
     """Retrieve full clinical details for a patient for Doctor consultation review."""
-    norm_abha = abha_id.strip()
+    norm_input = abha_id.strip()
+    norm_rx = normalize_rx_id(norm_input)
+
+    # Check newly created in-memory prescriptions first
+    for stored_id, data in _OFFLINE_PRESCRIPTIONS.items():
+        if normalize_rx_id(stored_id) == norm_rx:
+            norm_abha = data["rx"].get("abha_id", norm_input)
+            break
+    else:
+        # Resolve legacy demo prescription code to patient ABHA ID if provided
+        if norm_rx in ["APLRR1410RAME", "APL-RR-1410-RAME"] or norm_input.upper().startswith("APL-"):
+            norm_abha = "91-1234-5678-9012"
+        elif norm_input.lower() in ["ramesh kumar", "ramesh-kumar"]:
+            norm_abha = "91-1234-5678-9012"
+        elif norm_input.lower() in ["priya sharma", "priya-sharma"]:
+            norm_abha = "91-2345-6789-0123"
+        elif norm_input.lower() in ["arun patel", "arun-patel"]:
+            norm_abha = "91-3456-7890-1234"
+        else:
+            norm_abha = norm_input
+
     if not is_demo_patient(norm_abha):
         return None
+
 
     patient_record = None
     conditions = []

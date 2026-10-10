@@ -182,9 +182,9 @@ export const PatientView: React.FC = () => {
       {!abhaId && <PatientSwitcher />}
 
       {/* Hero Header */}
-      <section className="patient-hero relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 p-6 sm:p-10 md:p-12 shadow-soft">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-moss-500/15 blur-3xl" />
-        <div className="pointer-events-none absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-teal-700/10 blur-3xl" />
+      <section className="patient-hero relative overflow-hidden rounded-28 border border-hairline bg-gradient-to-br from-[#E4EBD6]/60 via-[#F4EFE2] to-[#ECE9DF]/70 dark:from-[#17241B] dark:via-[#1B291F] dark:to-[#141E17] dark:border-white/10 p-6 sm:p-10 md:p-12 shadow-soft">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-moss-500/15 dark:bg-moss-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-teal-700/10 dark:bg-teal-700/15 blur-3xl" />
 
         <div className="relative z-10 max-w-3xl">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -214,7 +214,7 @@ export const PatientView: React.FC = () => {
 
           {/* 4 Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
+            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40 dark:border-white/10 dark:bg-card/75">
               <div className="flex items-center gap-2 text-ink-soft text-xs mb-1">
                 <Calendar className="h-3.5 w-3.5 text-moss-600" />
                 <span className="font-medium">Encounters</span>
@@ -223,7 +223,7 @@ export const PatientView: React.FC = () => {
               <span className="text-[11px] text-ink-soft">Doctor Visits</span>
             </div>
 
-            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
+            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40 dark:border-white/10 dark:bg-card/75">
               <div className="flex items-center gap-2 text-ink-soft text-xs mb-1">
                 <Activity className="h-3.5 w-3.5 text-amber-600" />
                 <span className="font-medium">Active conditions</span>
@@ -232,7 +232,7 @@ export const PatientView: React.FC = () => {
               <span className="text-[11px] text-ink-soft">Health Conditions</span>
             </div>
 
-            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
+            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40 dark:border-white/10 dark:bg-card/75">
               <div className="flex items-center gap-2 text-ink-soft text-xs mb-1">
                 <Pill className="h-3.5 w-3.5 text-blue-600" />
                 <span className="font-medium">Medications</span>
@@ -241,7 +241,7 @@ export const PatientView: React.FC = () => {
               <span className="text-[11px] text-ink-soft">Prescriptions</span>
             </div>
 
-            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
+            <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40 dark:border-white/10 dark:bg-card/75">
               <div className="flex items-center gap-2 text-ink-soft text-xs mb-1">
                 <Shield className="h-3.5 w-3.5 text-emerald-600" />
                 <span className="font-medium">Lab Biomarkers</span>

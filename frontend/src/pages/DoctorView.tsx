@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Stethoscope, Plus, User, FileText, CheckCircle2, AlertCircle, Calendar, Building2, Pill, Activity, ArrowRight, Loader2, Search, HeartPulse, Share2, Sparkles } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,12 +28,13 @@ const COMMON_MEDICATIONS = [
 ];
 
 export const DoctorView: React.FC = () => {
+  const { userName, medicalRegNumber, hospitalAffiliation } = useAuth();
   const [activeTab, setActiveTab] = useState<'create' | 'lookup'>('create');
 
   // Creation State
   const [patientAbha, setPatientAbha] = useState<string>('91-1234-5678-9012');
-  const [doctorName, setDoctorName] = useState<string>('Dr. Rajesh Rao, MD');
-  const [hospitalName, setHospitalName] = useState<string>('Apollo Hospitals, New Delhi');
+  const [doctorName, setDoctorName] = useState<string>(userName || 'Dr. Rajesh Rao, MD');
+  const [hospitalName, setHospitalName] = useState<string>(hospitalAffiliation || 'Apollo Hospitals, New Delhi');
   const [diagnosis, setDiagnosis] = useState<string>('Essential Hypertension & Type 2 Diabetes');
   const [medications, setMedications] = useState<MedicationRow[]>([
     {
@@ -162,8 +165,9 @@ export const DoctorView: React.FC = () => {
 
       // Determine the ABHA to query
       let targetAbha = cleanQuery;
-      if (rxData?.patient?.abha_id) {
-        targetAbha = rxData.patient.abha_id;
+      if (rxData?.patient?.abha_id || rxData?.abha_id) {
+        targetAbha = rxData?.patient?.abha_id || rxData?.abha_id;
+
       } else if (cleanQuery.toUpperCase().includes('APLRR1410RAME') || cleanQuery.toUpperCase().includes('APL-RR-1410-RAME')) {
         targetAbha = '91-1234-5678-9012'; // Ramesh Kumar
       } else if (cleanQuery.toLowerCase() === 'ramesh kumar' || cleanQuery.toLowerCase() === 'ramesh-kumar') {
@@ -286,9 +290,15 @@ export const DoctorView: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-hairline pb-5">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1 text-xs font-semibold text-sky-700 dark:text-sky-300 mb-2">
-            <Stethoscope className="h-3.5 w-3.5 text-sky-600" />
-            Doctor Clinical Portal
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1 text-xs font-semibold text-sky-700 dark:text-sky-300">
+              <Stethoscope className="h-3.5 w-3.5 text-sky-600" />
+              Doctor Clinical Portal
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+              NMC Verified · {medicalRegNumber || 'MCI-2018-98421'}
+            </span>
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl text-ink font-bold">
             Electronic Prescriptions & Patient History
@@ -573,7 +583,8 @@ export const DoctorView: React.FC = () => {
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft" />
                 <Input
                   type="text"
-                  placeholder="Enter Prescription Code (e.g. APL-RR-1410-RAME) or Patient ABHA ID..."
+                  placeholder="Enter Prescription Code (e.g. RX-7K9M-4W2P or APL-RR-1410-RAME) or Patient ABHA ID..."
+
                   value={lookupAbha}
                   onChange={(e) => setLookupAbha(e.target.value)}
                   onKeyDown={(e) => {

@@ -250,18 +250,11 @@ html.dark .landing-page article {
 .mock-timeline .text-event-enc-text { color: #5e665f; }
 
 /* Dashboard Patient Hero in Dark Mode */
-html[data-theme="dark"] .patient-hero::after,
-html.dark .patient-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(18, 29, 22, .64) 0%, rgba(18, 29, 22, .47) 37%, rgba(18, 29, 22, .12) 63%, transparent 82%);
-}
-html[data-theme="dark"] .patient-hero > .relative,
-html.dark .patient-hero > .relative {
-  z-index: 2;
+html[data-theme="dark"] .patient-hero,
+html.dark .patient-hero,
+.dark .patient-hero {
+  background: linear-gradient(135deg, #17241B 0%, #1B291F 50%, #141E17 100%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Refined shared page surfaces */

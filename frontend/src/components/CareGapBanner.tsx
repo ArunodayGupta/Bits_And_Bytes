@@ -55,17 +55,17 @@ export const CareGapBanner: React.FC = () => {
     patient?.identifier?.find((i) => i.system?.includes('healthid'))?.value ||
     (currentPatientId === 'ramesh-kumar' ? '91-1234-5678-9012' : currentPatientId);
 
-  // If Backend source is active, fetch from backend and DO NOT recompute
+  // If Live or Database source is active, fetch from backend and DO NOT recompute
   useEffect(() => {
     let isCancelled = false;
 
-    if (source === 'live' || (source as string) === 'backend') {
+    if (source === 'live' || source === 'database' || (source as string) === 'backend') {
       const fetchBackendGaps = async () => {
         try {
           const res = await fetch(`/api/patient/${encodeURIComponent(activeAbha)}/care-gaps`);
           if (res.ok) {
             const data = (await res.json()) as CareGap[];
-            if (!isCancelled) setBackendGaps(data);
+            if (!isCancelled) setBackendGaps(Array.isArray(data) ? data : []);
             return;
           }
         } catch {
@@ -88,53 +88,58 @@ export const CareGapBanner: React.FC = () => {
   const clientGaps = useMemo(() => {
     if (!bundle?.entry) return [];
 
-    const inputs: ClinicalResourceInput[] = bundle.entry.map((e) => {
-      const r = e.resource as Record<string, unknown>;
-      const codeObj = r.code as Record<string, unknown> | undefined;
-      const codings = (codeObj?.coding as Array<Record<string, unknown>>) || [];
-      const valQty = r.valueQuantity as Record<string, unknown> | undefined;
+    try {
+      const inputs: ClinicalResourceInput[] = bundle.entry.map((e) => {
+        const r = e.resource as Record<string, unknown>;
+        const codeObj = r.code as Record<string, unknown> | undefined;
+        const codings = (codeObj?.coding as Array<Record<string, unknown>>) || [];
+        const valQty = r.valueQuantity as Record<string, unknown> | undefined;
 
-      const title =
-        (codeObj?.text as string) ||
-        (codings[0]?.display as string) ||
-        (r.resourceType as string);
+        const title =
+          (codeObj?.text as string) ||
+          (codings[0]?.display as string) ||
+          (r.resourceType as string);
 
-      const valStr = valQty
-        ? `${valQty.value} ${valQty.unit || ''}`
-        : (r.valueString as string) || null;
+        const valStr = valQty
+          ? `${valQty.value} ${valQty.unit || ''}`
+          : (r.valueString as string) || null;
 
-      const dateStr =
-        (r.effectiveDateTime as string) ||
-        (r.issued as string) ||
-        (r.recordedDate as string) ||
-        (r.authoredOn as string) ||
-        null;
+        const dateStr =
+          (r.effectiveDateTime as string) ||
+          (r.issued as string) ||
+          (r.recordedDate as string) ||
+          (r.authoredOn as string) ||
+          null;
 
-      const metaObj = r.meta as Record<string, unknown> | undefined;
-      const metaTags = (metaObj?.tag as Array<Record<string, unknown>>) || [];
-      const isOcr =
-        (r.source as string) === 'ocr_scan' ||
-        metaTags.some((t) => t.code === 'ocr-scan');
+        const metaObj = r.meta as Record<string, unknown> | undefined;
+        const metaTags = (metaObj?.tag as Array<Record<string, unknown>>) || [];
+        const isOcr =
+          (r.source as string) === 'ocr_scan' ||
+          metaTags.some((t) => t.code === 'ocr-scan');
 
-      return {
-        id: r.id as string,
-        fhir_id: r.id as string,
-        resource_type: r.resourceType as string,
-        event_date: dateStr,
-        summary_title: title,
-        summary_value: valStr,
-        source: isOcr ? 'ocr_scan' : 'ingested',
-        raw_json: r,
-      };
-    });
+        return {
+          id: r.id as string,
+          fhir_id: r.id as string,
+          resource_type: r.resourceType as string,
+          event_date: dateStr,
+          summary_title: title,
+          summary_value: valStr,
+          source: isOcr ? 'ocr_scan' : 'ingested',
+          raw_json: r,
+        };
+      });
 
-    return evaluateCareGaps(inputs);
+      return evaluateCareGaps(inputs) || [];
+    } catch (err) {
+      console.warn('Fallback care gap evaluation error:', err);
+      return [];
+    }
   }, [bundle]);
 
-  const rawGaps = backendGaps !== null ? backendGaps : clientGaps;
+  const rawGaps = (backendGaps !== null ? backendGaps : clientGaps) || [];
 
   // Filter out session-dismissed gaps
-  const activeGaps = rawGaps.filter((gap) => !dismissedCodes.has(gap.code));
+  const activeGaps = rawGaps.filter((gap) => gap && !dismissedCodes.has(gap.code));
 
   const handleDismiss = (code: string) => {
     setDismissedCodes((prev) => {
@@ -232,6 +237,14 @@ export const CareGapBanner: React.FC = () => {
                       {gap.message}
                     </p>
 
+                    {/* Dynamic Clinical Calculation Rationale */}
+                    {gap.clinical_rationale && (
+                      <div className="rounded-xl border border-current/20 bg-white/40 dark:bg-black/20 px-3 py-1.5 text-[11px] font-mono opacity-90">
+                        <span className="font-semibold text-moss-800 dark:text-moss-300 mr-1.5">● Clinical Evaluation:</span>
+                        <span>{gap.clinical_rationale}</span>
+                      </div>
+                    )}
+
                     {/* Evidence Dates & Summaries */}
                     {gap.evidence && gap.evidence.length > 0 && (
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-xs opacity-80">
@@ -262,7 +275,7 @@ export const CareGapBanner: React.FC = () => {
                   <span
                     className={`rounded-full border px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider ${badgeStyle}`}
                   >
-                    {gap.severity} severity
+                    {gap.severity} severity{gap.risk_score ? ` · ${gap.risk_score}/100` : ''}
                   </span>
 
                   {/* Session-only Dismiss Button */}

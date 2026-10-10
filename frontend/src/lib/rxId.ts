@@ -456,3 +456,24 @@ export function injectRxIdsIntoBundle(bundle: FhirBundle): {
 
   return { bundle: clonedBundle, registry };
 }
+
+/**
+ * Generates an unguessable, high-entropy unique prescription code.
+ * Format: RX-XXXX-XXXX (e.g. RX-7K9M-4W2P) using Crockford Base32 alphabet.
+ * Protects patient privacy by ensuring codes cannot be guessed or derived from patient initials or appointment dates.
+ */
+export function generateSecureRxCode(): string {
+  const alphabet = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+  let p1 = '';
+  let p2 = '';
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 4; i++) p1 += alphabet[bytes[i] % alphabet.length];
+    for (let i = 4; i < 8; i++) p2 += alphabet[bytes[i] % alphabet.length];
+  } else {
+    for (let i = 0; i < 4; i++) p1 += alphabet[Math.floor(Math.random() * alphabet.length)];
+    for (let i = 4; i < 8; i++) p2 += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return `RX-${p1}-${p2}`;
+}

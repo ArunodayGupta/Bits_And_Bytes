@@ -14,20 +14,26 @@ interface ObservationTrendProps {
 }
 
 export const ObservationTrend: React.FC<ObservationTrendProps> = ({ series }) => {
-  if (!series.points || series.points.length < 2) {
+  const validPoints = (series.points || []).filter(
+    (pt) => typeof pt.value === 'number' && !isNaN(pt.value)
+  );
+
+  if (validPoints.length < 2) {
     return null;
   }
 
-  const chartData = series.points.map((pt) => ({
+  const chartData = validPoints.map((pt) => ({
     date: pt.displayDate,
     value: pt.value,
     unit: pt.unit,
   }));
 
-  const latestPoint = series.points[series.points.length - 1];
-  const firstPoint = series.points[0];
-  const change = (latestPoint.value - firstPoint.value).toFixed(1);
+  const latestPoint = validPoints[validPoints.length - 1];
+  const firstPoint = validPoints[0];
+  const changeDiff = latestPoint.value - firstPoint.value;
+  const change = isNaN(changeDiff) ? '0.0' : changeDiff.toFixed(1);
   const isImproved = latestPoint.value < firstPoint.value; // for HbA1c / BP lower is often improved
+  const safeGradId = `grad-${(series.code || 'trend').replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
   return (
     <div className="rounded-20 border border-hairline bg-card p-4 shadow-soft">
@@ -39,7 +45,7 @@ export const ObservationTrend: React.FC<ObservationTrendProps> = ({ series }) =>
           </h4>
         </div>
         <span className="text-xs font-mono text-ink-soft">
-          last {series.points.length} readings
+          last {validPoints.length} readings
         </span>
       </div>
 
@@ -70,7 +76,7 @@ export const ObservationTrend: React.FC<ObservationTrendProps> = ({ series }) =>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
             <defs>
-              <linearGradient id={`grad-${series.code}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={safeGradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6F8F4E" stopOpacity={0.4} />
                 <stop offset="100%" stopColor="#6F8F4E" stopOpacity={0.0} />
               </linearGradient>
@@ -97,7 +103,7 @@ export const ObservationTrend: React.FC<ObservationTrendProps> = ({ series }) =>
               dataKey="value"
               stroke="#4F6B3A"
               strokeWidth={2.5}
-              fill={`url(#grad-${series.code})`}
+              fill={`url(#${safeGradId})`}
               dot={{ r: 2, fill: '#4F6B3A' }}
               activeDot={{ r: 4, fill: '#C9A24B', stroke: '#4F6B3A', strokeWidth: 2 }}
             />

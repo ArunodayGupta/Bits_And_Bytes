@@ -43,7 +43,8 @@ export const LandingPage = () => {
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <ButtonLink to="/login">Sign In with ABHA ID</ButtonLink>
-            <ButtonLink to="/signup" secondary>Create Account</ButtonLink>
+            <ButtonLink to="/signup" secondary>Doctor Registration</ButtonLink>
+
             <ButtonLink to="/login?role=doctor" secondary>Doctor Portal</ButtonLink>
           </div>
           <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-ink-soft">
@@ -182,7 +183,8 @@ export const LandingPage = () => {
         </p>
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           <ButtonLink to="/login">Sign In</ButtonLink>
-          <ButtonLink to="/signup" secondary>Create Account</ButtonLink>
+          <ButtonLink to="/signup" secondary>Doctor Registration</ButtonLink>
+
         </div>
       </section>
 
