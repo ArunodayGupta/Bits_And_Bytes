@@ -3,7 +3,11 @@ Unit tests for Generic Savings Engine (app.services.savings_service).
 Tests catalog validation, conservative matching, frequency parsing, and exact Decimal financial math.
 """
 
+import sys
 from decimal import Decimal
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from app.services.savings_service import (
     CatalogEntry,

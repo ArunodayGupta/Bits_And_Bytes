@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT_DIR))
+sys.path.insert(0, str(ROOT_DIR / "backend"))
 
 from app.services.ocr_service import MockOcrProvider, parse_ocr_document_to_draft
 from app.services.savings_service import compute_savings_for_prescription
@@ -19,6 +19,7 @@ from app.utils.db import get_patient_bundle_from_db
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEMO_ASSETS_DIR = ROOT_DIR / "frontend" / "public" / "demo"
+FIXTURES_DIR = ROOT_DIR / "frontend" / "src" / "data" / "patients"
 
 
 def export_assets():

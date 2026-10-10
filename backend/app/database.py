@@ -1,6 +1,8 @@
-from supabase import create_client, Client
-from app.config import settings
+"""app/database.py
+Backwards compatibility shim re-exporting get_supabase from app.utils.db.
+All database access is centralized in app.utils.db.
+"""
 
-def get_supabase() -> Client:
-    # Uses the service role key to bypass RLS for demo purposes.
-    return create_client(settings.supabase_url, settings.supabase_service_role_key)
+from app.utils.db import get_supabase
+
+__all__ = ["get_supabase"]

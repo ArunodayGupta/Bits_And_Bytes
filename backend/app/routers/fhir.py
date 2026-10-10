@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from app.models import IngestResponse
 from app.security import verify_api_key
-from app.database import get_supabase
+from app.utils.db import get_supabase
 from app.services.ingest import process_and_ingest_bundle
 
 router = APIRouter(tags=["FHIR"])

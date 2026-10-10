@@ -54,6 +54,15 @@ export async function fetchPatientData(
     return data;
   } catch (error) {
     clearTimeout(timeoutId);
+
+    // AbortError means the request was intentionally cancelled (e.g. React
+    // Strict Mode double-mount, component unmount, or manual reload). Do NOT
+    // treat this as a database failure — simply re-throw so the caller can
+    // decide what to do without triggering the fallback toast.
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error;
+    }
+
     console.warn('Database fetch failed, falling back to local bundle:', error);
 
     if (onFallback) {

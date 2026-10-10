@@ -285,14 +285,196 @@ class TextractProvider:
         return " ".join(words).strip()
 
 
+class GeminiOcrProvider:
+    """Google Gemini vision OCR provider accessed via Google AI Studio API.
+
+    Sends the image to the specified Gemini model and asks it to return a structured
+    JSON describing the lab report so that the existing parse pipeline can reuse
+    the same OcrDocument -> ScanDraft logic.
+    """
+
+    # Google AI Studio API URL template
+    _API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    _MODEL = "gemini-3.5-flash-lite"
+
+    # System prompt that instructs Gemini to return structured JSON
+    _SYSTEM_PROMPT = """You are a medical lab report OCR engine.
+Analyse the provided lab report image and return ONLY a JSON object (no markdown, no commentary) with this exact schema:
+{
+  "report_date": "<DD/MM/YYYY or null>",
+  "patient_name": "<string or null>",
+  "key_value_pairs": [
+    {"key": "<string>", "value": "<string>", "confidence": <0-100 float>}
+  ],
+  "lines": [
+    {"text": "<string>", "confidence": <0-100 float>}
+  ],
+  "tables": [
+    {
+      "confidence": <0-100 float>,
+      "rows": [
+        [
+          {"text": "<string>", "row_index": <int>, "col_index": <int>, "confidence": <0-100 float>}
+        ]
+      ]
+    }
+  ]
+}
+Ensure every test row is included in both lines and the table."""
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        import base64  # noqa: F401 – imported here to validate availability
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY", "")
+        if not self.api_key:
+            raise ValueError(
+                "GEMINI_API_KEY environment variable is required for the Gemini OCR provider."
+            )
+        self.model = model or os.getenv("GEMINI_MODEL", self._MODEL)
+
+    def analyze(self, image_bytes: bytes, content_type: str) -> OcrDocument:
+        import base64
+        import json
+        import requests as http
+
+        # Encode image as base64
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+        payload = {
+            "system_instruction": {
+                "parts": [{"text": self._SYSTEM_PROMPT}]
+            },
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": "Extract all lab test results from this report image as described."
+                        },
+                        {
+                            "inline_data": {
+                                "mime_type": content_type,
+                                "data": b64
+                            }
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0
+            }
+        }
+
+        url = self._API_URL.format(model=self.model, api_key=self.api_key)
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            resp = http.post(url, json=payload, headers=headers, timeout=60)
+            resp.raise_for_status()
+        except http.exceptions.Timeout:
+            raise RuntimeError("Gemini OCR request timed out after 60 s.")
+        except http.exceptions.HTTPError as exc:
+            raise RuntimeError(f"Gemini OCR API returned HTTP {exc.response.status_code}: {exc.response.text[:200]}")
+
+        resp_json = resp.json()
+        try:
+            raw_content: str = resp_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except (KeyError, IndexError):
+            raise RuntimeError(f"Unexpected response format from Gemini API: {resp.text[:300]}")
+
+        # Robust JSON extraction
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_content, re.DOTALL)
+        if json_match:
+            raw_content = json_match.group(1)
+        else:
+            # Fallback: extract substring between first { and last }
+            start = raw_content.find('{')
+            end = raw_content.rfind('}')
+            if start != -1 and end != -1:
+                raw_content = raw_content[start:end + 1]
+
+        try:
+            data = json.loads(raw_content)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"Gemini OCR returned non-JSON response: {exc}. Raw: {raw_content[:300]}")
+
+        return self._build_ocr_document(data)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _build_ocr_document(self, data: dict[str, Any]) -> OcrDocument:
+        """Convert the structured JSON from Gemini into an OcrDocument."""
+        lines: list[OcrLine] = [
+            OcrLine(text=ln.get("text", ""), confidence=float(ln.get("confidence", 90.0)))
+            for ln in data.get("lines", [])
+            if ln.get("text", "").strip()
+        ]
+
+        kv_pairs: list[OcrKeyValuePair] = []
+        # Add explicit key_value_pairs from Gemini
+        for kv in data.get("key_value_pairs", []):
+            if kv.get("key") and kv.get("value") is not None:
+                kv_pairs.append(
+                    OcrKeyValuePair(
+                        key=str(kv["key"]),
+                        value=str(kv["value"]),
+                        confidence=float(kv.get("confidence", 90.0)),
+                    )
+                )
+        # Inject report_date and patient_name as KV pairs if present
+        if data.get("report_date"):
+            kv_pairs.insert(0, OcrKeyValuePair(key="Report Date", value=str(data["report_date"]), confidence=95.0))
+        if data.get("patient_name"):
+            kv_pairs.insert(0, OcrKeyValuePair(key="Patient Name", value=str(data["patient_name"]), confidence=95.0))
+
+        tables: list[OcrTable] = []
+        for tbl in data.get("tables", []):
+            tbl_rows: list[list[OcrTableCell]] = []
+            for row in tbl.get("rows", []):
+                cells = [
+                    OcrTableCell(
+                        text=cell.get("text", ""),
+                        row_index=int(cell.get("row_index", 0)),
+                        col_index=int(cell.get("col_index", 0)),
+                        confidence=float(cell.get("confidence", 90.0)),
+                    )
+                    for cell in row
+                ]
+                if cells:
+                    tbl_rows.append(cells)
+            if tbl_rows:
+                tables.append(OcrTable(rows=tbl_rows, confidence=float(tbl.get("confidence", 90.0))))
+
+        return OcrDocument(
+            lines=lines,
+            key_value_pairs=kv_pairs,
+            tables=tables,
+            provider_name="gemini",
+        )
+
+
 def get_ocr_provider(provider_type: str | None = None) -> OcrProvider:
-    """Select configured OCR provider. Defaults to MockOcrProvider."""
+    """Select configured OCR provider. Defaults to MockOcrProvider.
+
+    Supported values for OCR_PROVIDER env var (or provider_type arg):
+      mock      – canned synthetic lab report (default, no credentials needed)
+      gemini    – Google Gemini vision via OpenRouter / Google AI Studio (requires GEMINI_API_KEY)
+      textract  – AWS Textract (requires AWS credentials)
+    """
     mode = (provider_type or os.getenv("OCR_PROVIDER", "mock")).lower().strip()
+    if mode == "gemini":
+        try:
+            return GeminiOcrProvider()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "GeminiOcrProvider init failed (%s); falling back to MockOcrProvider.", exc
+            )
+            return MockOcrProvider()
     if mode == "textract":
         try:
             return TextractProvider()
         except Exception:
-            # Safe fallback if boto3 or AWS credentials missing
             return MockOcrProvider()
     return MockOcrProvider()
 
@@ -411,11 +593,11 @@ def parse_ocr_document_to_draft(doc: OcrDocument, abha_id: str) -> ScanDraft:
                 continue
 
             # Extract numeric value
-            num_match = re.search(r"(\d+(?:\.\d+)?)", result_text)
+            num_match = re.search(r"(\d+(?:\.\d+)?)", result_text.replace(",", ""))
             if not num_match:
                 # Try finding numeric value in subsequent cells
                 for extra_cell in row[1:]:
-                    num_match = re.search(r"(\d+(?:\.\d+)?)", extra_cell.text)
+                    num_match = re.search(r"(\d+(?:\.\d+)?)", extra_cell.text.replace(",", ""))
                     if num_match:
                         break
 
@@ -555,6 +737,9 @@ def build_fhir_observation(
         "effectiveDateTime": effective_date,
         "valueQuantity": val_quantity,
         "meta": {
+            "profile": [
+                "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation"
+            ],
             "tag": [
                 {
                     "system": "https://phr-demo.example.org/source",

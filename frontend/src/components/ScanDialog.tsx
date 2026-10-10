@@ -69,7 +69,7 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
   onScanSuccess,
 }) => {
   const { abhaId } = useAuth();
-  const { source, addObservationToBundle, reload } = usePatientData();
+  const { source, addObservationToBundle, reload, patient } = usePatientData();
 
   const [step, setStep] = useState<'upload' | 'review'>('upload');
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -298,8 +298,13 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
     setIsLoading(true);
     setErrorMsg(null);
 
+    const effectiveAbha =
+      abhaId ||
+      patient?.identifier?.find((i) => i.system?.includes('healthid'))?.value ||
+      '91-1234-5678-9012';
+
     const payload = {
-      abha_id: abhaId || '91-1234-5678-9012',
+      abha_id: effectiveAbha,
       effective_date: reportDate,
       items: draft.items.map((i) => ({
         test_key: i.test_key,
@@ -310,56 +315,76 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
     };
 
     try {
-      if (source === 'offline') {
-        // Offline path: reconstruct Observation in-memory and inject into bundle
-        for (const item of draft.items) {
-          const obsResource: FhirObservation = {
-            resourceType: 'Observation',
-            id: `obs-scan-${item.test_key}-${Date.now()}`,
-            status: 'preliminary',
-            code: {
-              coding: [{ system: 'http://loinc.org', code: item.loinc, display: item.display }],
-              text: item.display,
-            },
-            effectiveDateTime: reportDate,
-            valueQuantity: {
-              value: item.value,
-              unit: item.unit,
-              system: 'http://unitsofmeasure.org',
-              code: item.unit === '%' ? '%' : item.unit,
-            },
-            meta: {
-              tag: [{ system: 'https://phr-demo.example.org/source', code: 'ocr-scan' }],
-            },
-          };
-          addObservationToBundle(obsResource);
-        }
-        onOpenChange(false);
-        if (onScanSuccess) onScanSuccess();
-      } else {
-        // Online path: post to server confirm endpoint
+      let savedResources: FhirObservation[] = [];
+
+      // 1. Always attempt server-side DB push
+      try {
         const confirmRes = await fetch('/api/fhir/scan-report/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
-        if (!confirmRes.ok) {
-          const errData = await confirmRes.json().catch(() => ({}));
-          throw new Error(errData?.error?.message || 'Failed to save confirmed report');
-        }
-
-        const resData = await confirmRes.json();
-        // Also update local bundle for instant reactive UI
-        if (resData.resources) {
-          for (const r of resData.resources) {
-            addObservationToBundle(r);
+        if (confirmRes.ok) {
+          const resData = await confirmRes.json();
+          if (resData.resources && Array.isArray(resData.resources) && resData.resources.length > 0) {
+            savedResources = resData.resources;
           }
         }
-        await reload();
-        onOpenChange(false);
-        if (onScanSuccess) onScanSuccess();
+      } catch (err) {
+        console.warn('Backend confirm endpoint error, proceeding with local fallback:', err);
       }
+
+      // 2. If server did not return resources, construct standard FHIR observations locally
+      if (savedResources.length === 0) {
+        savedResources = draft.items.map((item) => ({
+          resourceType: 'Observation',
+          id: `obs-scan-${item.test_key}-${Date.now()}`,
+          status: 'preliminary',
+          category: [
+            {
+              coding: [
+                {
+                  system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                  code: 'laboratory',
+                  display: 'Laboratory',
+                },
+              ],
+            },
+          ],
+          code: {
+            coding: [{ system: 'http://loinc.org', code: item.loinc, display: item.display }],
+            text: item.display,
+          },
+          subject: {
+            reference: `urn:uuid:patient-${effectiveAbha}`,
+            display: 'Patient',
+          },
+          effectiveDateTime: reportDate,
+          valueQuantity: {
+            value: item.value,
+            unit: item.unit,
+            system: 'http://unitsofmeasure.org',
+            code: item.unit === '%' ? '%' : item.unit,
+          },
+          meta: {
+            profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation'],
+            tag: [{ system: 'https://phr-demo.example.org/source', code: 'ocr-scan' }],
+          },
+        }));
+      }
+
+      // 3. Inject all saved resources into timeline bundle
+      for (const r of savedResources) {
+        addObservationToBundle(r);
+      }
+
+      // 4. Trigger reload
+      void reload();
+
+      // 5. Close dialog & callback
+      onOpenChange(false);
+      if (onScanSuccess) onScanSuccess();
     } catch (err: any) {
       setErrorMsg(err.message || 'Error saving confirmed observations');
     } finally {
