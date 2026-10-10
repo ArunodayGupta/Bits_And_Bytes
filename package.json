@@ -23,5 +23,8 @@
     "db:seed": "npm --prefix backend run db:seed",
     "typecheck": "npm --prefix frontend run typecheck && npm --prefix backend run typecheck",
     "check:secrets": "node scripts/check_secrets.js"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1"
   }
 }

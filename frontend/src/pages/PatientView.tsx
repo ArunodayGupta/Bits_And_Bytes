@@ -8,8 +8,9 @@ import { PatientSwitcher } from '@/components/PatientSwitcher';
 import { CareGapBanner } from '@/components/CareGapBanner';
 import { ScanDialog } from '@/components/ScanDialog';
 import {
-  Calendar, Activity, Pill, Shield, Camera, Share2, Copy, Check, QrCode
+  Calendar, Activity, Pill, Shield, Camera, Share2, Copy, Check, QrCode, Download
 } from 'lucide-react';
+import { downloadFhirBundlePdf } from '@/lib/fhir/downloadFhirBundlePdf';
 
 // ─────────────────────────────────────────────
 // Share to Doctor panel
@@ -132,6 +133,15 @@ export const PatientView: React.FC = () => {
 
   const [isScanOpen, setIsScanOpen] = useState(false);
 
+  const handleDownloadPdf = useCallback(async () => {
+    if (!bundle) return;
+    try {
+      await downloadFhirBundlePdf(bundle);
+    } catch (err) {
+      console.error('Failed to download PDF:', err);
+    }
+  }, [bundle]);
+
   // Enforce session ABHA in patient view
   useEffect(() => {
     if (abhaId && availablePatients.length > 0) {
@@ -193,15 +203,27 @@ export const PatientView: React.FC = () => {
               Health Records · {patientName}
             </span>
 
-            <button
-              type="button"
-              onClick={() => setIsScanOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-moss-600 px-4 py-2 text-xs font-semibold text-paper hover:bg-moss-500 transition-all shadow-sm"
-              aria-label="Scan and upload a lab report"
-            >
-              <Camera className="h-4 w-4" />
-              <span>Scan report</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={!bundle}
+                className="inline-flex items-center gap-2 rounded-full bg-white/50 dark:bg-black/20 border border-white/40 dark:border-white/10 px-4 py-2 text-xs font-semibold text-ink hover:bg-white/80 dark:hover:bg-black/40 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Download Clinical History PDF"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Download PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsScanOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-moss-600 px-4 py-2 text-xs font-semibold text-paper hover:bg-moss-500 transition-all shadow-sm"
+                aria-label="Scan and upload a lab report"
+              >
+                <Camera className="h-4 w-4" />
+                <span>Scan report</span>
+              </button>
+            </div>
           </div>
 
           <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-normal text-ink leading-tight mb-4">

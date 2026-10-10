@@ -66,6 +66,33 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to experienc
 
 ---
 
+## 🚀 Deployment
+
+The project is structured to deploy the backend as a separate API service and the frontend as a static SPA.
+
+### Deploy Backend (Render)
+1. Push your code to GitHub.
+2. In [Render](https://dashboard.render.com/), create a new **Web Service**.
+3. Settings:
+   - **Root Directory**: `backend` (or `.` if using root `requirements.txt`)
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Add all environment variables from `backend/.env`.
+
+### Deploy Frontend (Vercel)
+1. In `frontend/vercel.json`, ensure the proxy destination points to your Render backend URL:
+   `"destination": "https://<your-render-app>.onrender.com/$1"`
+2. In [Vercel](https://vercel.com/), add a new project and import the repository.
+3. Settings:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Deploy!
+
+---
+
 ## 🧪 Testing Suites
 
 ### Python Backend Test Suite (pytest)
