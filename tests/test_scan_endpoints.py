@@ -5,11 +5,14 @@ and care-gap status transitions.
 """
 
 import io
+import sys
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from app.main import app
 from app.utils.db import reset_demo_scanned_resources

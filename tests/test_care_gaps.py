@@ -4,7 +4,10 @@ Tests pure logic, data prep helpers, BP rules, HbA1c rules, and runs the shared 
 """
 
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from app.services.care_gaps import (
     evaluate_care_gaps,
@@ -12,7 +15,7 @@ from app.services.care_gaps import (
     has_hypertension,
 )
 
-FIXTURES_DIR = Path(__file__).resolve().parent.parent / "backend" / "fixtures"
+FIXTURES_DIR = Path(__file__).resolve().parent.parent / "frontend" / "src" / "data" / "patients"
 SHARED_VECTORS_PATH = Path(__file__).resolve().parent.parent / "shared" / "test-vectors" / "care-gaps.json"
 
 

@@ -38,6 +38,14 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
   const [activeFilter, setActiveFilter] = useState<'all' | TimelineEventType>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [sessionScannedObservations, setSessionScannedObservations] = useState<FhirResource[]>(() => {
+    try {
+      const stored = sessionStorage.getItem(`healthsafe_scanned_obs_${DEFAULT_PATIENT_PROFILE.id}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   // Track whether data has ever been loaded so background refreshes don't show skeletons
   const hasLoadedOnce = useRef<boolean>(false);
 
@@ -66,6 +74,19 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
       // Inject deterministic speakable Rx-IDs into all MedicationRequests
       const { bundle: preparedBundle } = injectRxIdsIntoBundle(fetchedBundle);
+
+      // Merge any session scanned observations into bundle if not already present
+      if (!preparedBundle.entry) preparedBundle.entry = [];
+      const currentEntryIds = new Set(preparedBundle.entry.map((e) => e.resource.id));
+      for (const obs of sessionScannedObservations) {
+        if (!currentEntryIds.has(obs.id)) {
+          preparedBundle.entry.unshift({
+            fullUrl: `urn:uuid:${obs.id}`,
+            resource: obs,
+          });
+          currentEntryIds.add(obs.id);
+        }
+      }
 
       setRawBundle(fetchedBundle);
       setBundle(preparedBundle);
@@ -210,6 +231,17 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
   }, [timelineGroups, activeFilter, searchQuery]);
 
   const addObservationToBundle = useCallback((obs: FhirResource) => {
+    setSessionScannedObservations((prev) => {
+      const exists = prev.some((o) => o.id === obs.id);
+      const next = exists ? prev : [obs, ...prev];
+      try {
+        sessionStorage.setItem(`healthsafe_scanned_obs_${currentPatientId}`, JSON.stringify(next));
+      } catch {
+        // ignore storage error
+      }
+      return next;
+    });
+
     setBundle((prevBundle) => {
       if (!prevBundle) return prevBundle;
       const currentEntries = prevBundle.entry || [];
@@ -226,7 +258,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       };
     });
     setToastMessage('Lab observation added to timeline.');
-  }, []);
+  }, [currentPatientId]);
 
   const value: PatientDataContextValue = {
     source,

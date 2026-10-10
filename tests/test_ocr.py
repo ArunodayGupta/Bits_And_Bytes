@@ -5,10 +5,13 @@ and FHIR Observation reconstruction.
 """
 
 import os
+import sys
 from datetime import date
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from app.services.ocr_service import (
     MockOcrProvider,
