@@ -9,11 +9,14 @@
 [![HL7 FHIR R4](https://img.shields.io/badge/Standard-HL7%20FHIR%20R4%20%7C%20NRCeS-E11D48)](https://nrces.in/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%7C%20Python-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/Web-React%2018%20%7C%20TypeScript%20%7C%20Tailwind-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Live Deployment](https://img.shields.io/badge/Live%20App-Vercel-black?logo=vercel&logoColor=white)](https://bits-and-bytes-ldox.vercel.app/)
 
 ---
 
-## 🎥 App Video Demo & Download Links
+## 🌐 Live Web App, Video Demo & Release APK
 
+- 🌐 **Live Web Application**:  
+  👉 **[https://bits-and-bytes-ldox.vercel.app/](https://bits-and-bytes-ldox.vercel.app/)**
 - 🎬 **Watch App Video Demo**:  
   👉 **[Submit / View Video Demo (Google Form Link)](https://docs.google.com/forms/d/e/1FAIpQLSdGGcpgudhHGk-Etcpt1cgaMe7NkxtUMQIFjuO4kq5v4suKGQ/viewform)**
 - 📱 **Download Android Release APK**:  
@@ -205,5 +208,6 @@ npm run check:secrets
 
 Developed with ❤️ for the Hackathon.  
 - **Team**: Bits & Bytes  
+- **Live Deployment**: [https://bits-and-bytes-ldox.vercel.app/](https://bits-and-bytes-ldox.vercel.app/)  
 - **Submission Demo**: [Google Form Video Submission](https://docs.google.com/forms/d/e/1FAIpQLSdGGcpgudhHGk-Etcpt1cgaMe7NkxtUMQIFjuO4kq5v4suKGQ/viewform)  
 - **Releases**: [HealthSafe Android APK Releases](https://github.com/ArunodayGupta/Bits_And_Bytes/releases)
