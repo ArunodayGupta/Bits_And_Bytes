@@ -11,6 +11,7 @@ import { DoctorView } from '@/pages/DoctorView';
 import { ClinicianView } from '@/pages/ClinicianView';
 import { AdminView } from '@/pages/AdminView';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AppFooter } from '@/components/AppFooter';
 
 const FallbackRoute = () => {
   const { isAuthenticated, role } = useAuth();
@@ -99,27 +100,11 @@ export default function App() {
                 </Routes>
               </main>
 
-              {/* App Footer */}
-              <footer className="w-full border-t border-hairline py-6 px-4 text-center text-xs text-ink-soft">
-                <div className="mx-auto max-w-[1640px] flex flex-col sm:flex-row items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
-                  <div className="flex items-center gap-2">
-                    <span className="font-serif italic text-sm text-ink font-semibold">
-                      HealthSafe
-                    </span>
-                    <span>— Your health records, in one place</span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
-                    <Link to="/patient" className="hover:text-ink">Patient</Link>
-                    <Link to="/doctor" className="hover:text-ink">Doctor Portal</Link>
-                    <Link to="/physician" className="hover:text-ink">Physician Portal</Link>
-                    <Link to="/admin" className="hover:text-ink">Admin</Link>
-                    <span>·</span>
-                    <a href="https://abha.abdm.gov.in/abha/v3/" target="_blank" rel="noopener noreferrer" className="hover:text-ink">Get ABHA ID</a>
-                  </div>
-                </div>
-              </footer>
+              {/* Dynamic Contextual App Footer */}
+              <AppFooter />
             </div>
           </ErrorBoundary>
+
         </PatientDataProvider>
       </AuthProvider>
     </BrowserRouter>

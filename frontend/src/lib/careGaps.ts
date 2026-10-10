@@ -28,11 +28,111 @@ export interface CareGap {
   days_since?: number | null;
   last_value?: string | null;
   last_date?: string | null;
+  // Dynamic clinical risk calculation fields
+  risk_score?: number;
+  clinical_rationale?: string;
+  action_recommendation?: string;
   // Phase 1 camelCase aliases
   daysSince?: number | null;
   lastValue?: string | null;
   lastDate?: string | null;
 }
+
+/**
+ * Dynamic Clinical Severity & Risk Calculation Engine
+ * Calculates risk scores (0-100) and severity dynamically using ADA 2024 & ACC/AHA 2017 clinical standards
+ * instead of static hardcoded labels.
+ */
+export function calculateHbA1cClinicalSeverity(
+  valNum: number | undefined,
+  daysDiff: number | null
+): { severity: 'low' | 'medium' | 'high'; riskScore: number; rationale: string } {
+  if (daysDiff === null || valNum === undefined) {
+    return {
+      severity: 'high',
+      riskScore: 85,
+      rationale:
+        'Diagnosed Type 2 Diabetes without baseline HbA1c test on record. Urgent glycemic evaluation recommended.',
+    };
+  }
+
+  let score = 30;
+  if (valNum >= 9.0) {
+    score += 45; // Critical uncontrolled hyperglycemia
+  } else if (valNum >= 8.0) {
+    score += 30; // Elevated hyperglycemia
+  } else if (valNum >= 7.0) {
+    score += 15; // Above ADA standard target (<7.0%)
+  } else {
+    score += 5; // Near target
+  }
+
+  if (daysDiff >= 365) {
+    score += 25; // Over a year overdue
+  } else if (daysDiff >= 270) {
+    score += 15; // Over 9 months overdue
+  } else if (daysDiff >= 180) {
+    score += 10; // Over 6 months overdue
+  }
+
+  const riskScore = Math.min(100, Math.max(10, score));
+  let severity: 'low' | 'medium' | 'high' = 'low';
+  if (riskScore >= 70) severity = 'high';
+  else if (riskScore >= 45) severity = 'medium';
+
+  const rationale = `Dynamic Risk Score: ${riskScore}/100. Evaluated from HbA1c ${valNum}% and ${daysDiff} days elapsed since last laboratory check (ADA Guidelines 180-day monitoring cycle).`;
+  return { severity, riskScore, rationale };
+}
+
+export function calculateBpClinicalSeverity(
+  readings: BpReading[],
+  ruleType: 'uncontrolled' | 'single' | 'rising'
+): { severity: 'low' | 'medium' | 'high'; riskScore: number; rationale: string } {
+  if (readings.length === 0) {
+    return { severity: 'medium', riskScore: 50, rationale: 'Elevated blood pressure monitoring required.' };
+  }
+
+  const latest = readings[0];
+
+  if (ruleType === 'rising' && readings.length >= 3) {
+    const rise = latest.systolic - readings[2].systolic;
+    const riskScore = Math.min(68, Math.max(45, 50 + Math.floor(rise * 1.2)));
+    return {
+      severity: 'medium',
+      riskScore,
+      rationale: `Dynamic Trend Score: ${riskScore}/100. Evaluated from +${rise} mmHg systolic rise across last 3 readings (${readings[2].systolic} -> ${readings[1].systolic} -> ${latest.systolic} mmHg).`,
+    };
+  }
+
+  let score = 30;
+
+  if (latest.systolic >= 180 || latest.diastolic >= 120) {
+    score += 55; // Hypertensive crisis threshold
+  } else if (latest.systolic >= 160 || latest.diastolic >= 100) {
+    score += 40; // Stage 2 Hypertension
+  } else if (latest.systolic >= 140 || latest.diastolic >= 90) {
+    score += 25; // Stage 1 Hypertension
+  } else {
+    score += 10;
+  }
+
+  if (ruleType === 'uncontrolled' && readings.length >= 2) {
+    const prev = readings[1];
+    if (prev.systolic >= 140 || prev.diastolic >= 90) {
+      score += 20; // Persistent elevation across consecutive encounters
+    }
+  }
+
+  const riskScore = Math.min(100, Math.max(10, score));
+  let severity: 'low' | 'medium' | 'high' = 'low';
+  if (riskScore >= 70) severity = 'high';
+  else if (riskScore >= 45) severity = 'medium';
+
+  const rationale = `Dynamic Risk Score: ${riskScore}/100. Evaluated from latest BP ${latest.systolic}/${latest.diastolic} mmHg against ACC/AHA clinical criteria.`;
+  return { severity, riskScore, rationale };
+}
+
+
 
 export interface ClinicalResourceInput {
   id?: string;
@@ -248,9 +348,12 @@ export function evaluateCareGaps(
       });
 
     if (hba1cObs.length === 0) {
+      const evalResult = calculateHbA1cClinicalSeverity(undefined, null);
       gaps.push({
         code: 'HBA1C_OVERDUE',
-        severity: 'high',
+        severity: evalResult.severity,
+        risk_score: evalResult.riskScore,
+        clinical_rationale: evalResult.rationale,
         title: 'Overdue HbA1c Lab Test',
         message:
           'Type 2 diabetes is diagnosed, but no HbA1c monitoring test is on record. Routine glycemic testing every 3–6 months is recommended; please discuss this with your doctor.',
@@ -283,9 +386,13 @@ export function evaluateCareGaps(
               : 'ingested'
           );
 
+          const evalResult = calculateHbA1cClinicalSeverity(valNum, daysDiff);
+
           gaps.push({
             code: 'HBA1C_OVERDUE',
-            severity: 'high',
+            severity: evalResult.severity,
+            risk_score: evalResult.riskScore,
+            clinical_rationale: evalResult.rationale,
             title: 'Overdue HbA1c Monitoring',
             message: `Last recorded HbA1c was ${lastValStr} on ${lastDateFormatted} (${daysDiff} days ago). Regular glycemic monitoring is recommended at least every 6 months; please discuss this with your doctor.`,
             evidence: [
@@ -320,9 +427,12 @@ export function evaluateCareGaps(
       if (r0Elevated && r1Elevated) {
         const d0Fmt = formatDisplayDate(r0.event_date);
         const d1Fmt = formatDisplayDate(r1.event_date);
+        const evalResult = calculateBpClinicalSeverity(bpReadings, 'uncontrolled');
         gaps.push({
           code: 'UNCONTROLLED_BP',
-          severity: 'high',
+          severity: evalResult.severity,
+          risk_score: evalResult.riskScore,
+          clinical_rationale: evalResult.rationale,
           title: 'Uncontrolled Blood Pressure',
           message: `Your last two blood pressure readings (${r0.systolic}/${r0.diastolic} on ${d0Fmt}, ${r1.systolic}/${r1.diastolic} on ${d1Fmt}) were at or above 140/90 mmHg. Please discuss this with your doctor.`,
           evidence: [
@@ -337,9 +447,12 @@ export function evaluateCareGaps(
       const r0Elevated = r0.systolic >= BP_SYSTOLIC_THRESHOLD || r0.diastolic >= BP_DIASTOLIC_THRESHOLD;
       if (r0Elevated) {
         const d0Fmt = formatDisplayDate(r0.event_date);
+        const evalResult = calculateBpClinicalSeverity(bpReadings, 'single');
         gaps.push({
           code: 'BP_ELEVATED_SINGLE_READING',
-          severity: 'medium',
+          severity: evalResult.severity,
+          risk_score: evalResult.riskScore,
+          clinical_rationale: evalResult.rationale,
           title: 'Elevated Blood Pressure (Single Reading)',
           message: `Your latest blood pressure reading (${r0.systolic}/${r0.diastolic} on ${d0Fmt}) was at or above 140/90 mmHg. There is not enough history to assess the trend; please discuss this with your doctor.`,
           evidence: [
@@ -361,9 +474,12 @@ export function evaluateCareGaps(
       if (isStrictlyIncreasing && totalRise >= BP_RISING_MIN_RISE) {
         const d2Fmt = formatDisplayDate(r2.event_date);
         const d0Fmt = formatDisplayDate(r0.event_date);
+        const evalResult = calculateBpClinicalSeverity(bpReadings, 'rising');
         gaps.push({
           code: 'BP_RISING_TREND',
-          severity: 'medium',
+          severity: evalResult.severity,
+          risk_score: evalResult.riskScore,
+          clinical_rationale: evalResult.rationale,
           title: 'Rising Blood Pressure Trend (Demo Rule)',
           message: `Demo rule: Your systolic blood pressure has risen across your last 3 readings (${r2.systolic} -> ${r1.systolic} -> ${r0.systolic} mmHg between ${d2Fmt} and ${d0Fmt}, an increase of ${totalRise} mmHg). Please discuss this with your doctor.`,
           evidence: [
@@ -376,6 +492,7 @@ export function evaluateCareGaps(
       }
     }
   }
+
 
   // Sort by severity (high -> medium -> low), then code
   const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };

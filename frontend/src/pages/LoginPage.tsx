@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientData } from '@/context/usePatientData';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -34,6 +34,7 @@ const DEFAULT_DEMO_PATIENTS: DemoPatientChip[] = [
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { loginPatient, loginPhysician, loginDoctor, loginAdmin, isAuthenticated, role } = useAuth();
   const { setPatientId, availablePatients } = usePatientData();
 
@@ -46,6 +47,15 @@ export const LoginPage: React.FC = () => {
   const [demoPatients, setDemoPatients] = useState<DemoPatientChip[]>(DEFAULT_DEMO_PATIENTS);
 
   const otpInputRef = useRef<HTMLInputElement>(null);
+
+  // Switch tab if role/tab specified in URL (e.g. /login?role=doctor)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roleParam = params.get('role') || params.get('tab');
+    if (roleParam && ['patient', 'physician', 'doctor', 'admin'].includes(roleParam)) {
+      setActiveTab(roleParam as any);
+    }
+  }, [location.search]);
 
   // If already logged in, redirect to the user's scoped dashboard
   useEffect(() => {
@@ -109,7 +119,7 @@ export const LoginPage: React.FC = () => {
       (p) => p.abha_id.replace(/\D/g, '') === abhaInput.replace(/\D/g, '')
     );
     if (!found) {
-      setErrorMsg('No record found for this ABHA ID. Please select a demo profile or check your ID.');
+      setErrorMsg('No demo record found.');
       return;
     }
 
@@ -126,7 +136,7 @@ export const LoginPage: React.FC = () => {
     setErrorMsg(null);
 
     if (otpInput !== '123456') {
-      setErrorMsg('Invalid OTP. Enter the demo OTP: 123456');
+      setErrorMsg('Invalid OTP. Please enter demo OTP: 123456');
       return;
     }
 
@@ -137,6 +147,7 @@ export const LoginPage: React.FC = () => {
         (p) => p.abha_id.replace(/\D/g, '') === abhaInput.replace(/\D/g, '')
       );
       const targetAbha = matched ? matched.abha_id : abhaInput;
+
 
       const profile = availablePatients.find(
         (p) => p.abha.replace(/\D/g, '') === targetAbha.replace(/\D/g, '')
@@ -173,11 +184,12 @@ export const LoginPage: React.FC = () => {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <CardTitle className="font-serif text-2xl font-bold tracking-tight">
-            Sign in to HealthSafe
+            Unified Health Wallet
           </CardTitle>
           <CardDescription className="text-xs text-ink-soft mt-1">
-            Choose your role to continue
+            Demo login (simulated ABHA OTP)
           </CardDescription>
+
         </CardHeader>
 
         <CardContent className="space-y-4 px-6">
@@ -226,7 +238,7 @@ export const LoginPage: React.FC = () => {
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="abha-input" className="text-xs font-medium text-ink-soft">
-                      ABHA Health ID
+                      ABHA Number / Health ID
                     </label>
                     <Input
                       id="abha-input"
@@ -238,6 +250,7 @@ export const LoginPage: React.FC = () => {
                       maxLength={17}
                     />
                   </div>
+
 
                   {/* Demo Patient Quick-Select Chips */}
                   <div className="space-y-1.5">
@@ -426,12 +439,18 @@ export const LoginPage: React.FC = () => {
           </Tabs>
         </CardContent>
 
-        <CardFooter className="bg-paper-2/50 border-t border-hairline py-4 px-6 flex justify-center text-xs text-ink-soft">
-          <span>New patient?</span>
-          <Link to="/signup" className="ml-1.5 font-semibold text-moss-700 hover:underline dark:text-moss-400">
-            Create an account
-          </Link>
+        <CardFooter className="bg-paper-2/50 border-t border-hairline py-4 px-6 flex flex-col items-center justify-center gap-1.5 text-xs text-ink-soft">
+          <div>
+            <span>New patient?</span>
+            <Link to="/signup" className="ml-1.5 font-semibold text-moss-700 hover:underline dark:text-moss-400">
+              Create an account
+            </Link>
+          </div>
+          <p className="text-[10px] text-ink-soft text-center opacity-80">
+            Demo only: no real authentication and no real ABDM connection
+          </p>
         </CardFooter>
+
       </Card>
     </div>
   );

@@ -237,6 +237,14 @@ export const CareGapBanner: React.FC = () => {
                       {gap.message}
                     </p>
 
+                    {/* Dynamic Clinical Calculation Rationale */}
+                    {gap.clinical_rationale && (
+                      <div className="rounded-xl border border-current/20 bg-white/40 dark:bg-black/20 px-3 py-1.5 text-[11px] font-mono opacity-90">
+                        <span className="font-semibold text-moss-800 dark:text-moss-300 mr-1.5">● Clinical Evaluation:</span>
+                        <span>{gap.clinical_rationale}</span>
+                      </div>
+                    )}
+
                     {/* Evidence Dates & Summaries */}
                     {gap.evidence && gap.evidence.length > 0 && (
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-xs opacity-80">
@@ -267,7 +275,7 @@ export const CareGapBanner: React.FC = () => {
                   <span
                     className={`rounded-full border px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider ${badgeStyle}`}
                   >
-                    {gap.severity} severity
+                    {gap.severity} severity{gap.risk_score ? ` · ${gap.risk_score}/100` : ''}
                   </span>
 
                   {/* Session-only Dismiss Button */}

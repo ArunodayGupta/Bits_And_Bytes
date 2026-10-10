@@ -293,6 +293,38 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
+              {isLanding && (
+                <div className="flex flex-col gap-1 pb-2 mb-2 border-b border-hairline">
+                  <a
+                    href="#patients"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-3 py-2 text-xs font-medium text-ink-soft hover:text-ink"
+                  >
+                    For Patients
+                  </a>
+                  <a
+                    href="#doctors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-3 py-2 text-xs font-medium text-ink-soft hover:text-ink"
+                  >
+                    For Doctors
+                  </a>
+                  <a
+                    href="#how-it-works"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-3 py-2 text-xs font-medium text-ink-soft hover:text-ink"
+                  >
+                    How it works
+                  </a>
+                  <a
+                    href="#features"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-3 py-2 text-xs font-medium text-ink-soft hover:text-ink"
+                  >
+                    Features
+                  </a>
+                </div>
+              )}
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}

@@ -285,7 +285,12 @@ def rule_hba1c_overdue(facts: ClinicalFacts, as_of: datetime) -> list[CareGap]:
     if not facts.has_diabetes:
         return []
 
-    if not facts.hba1c_observations:
+    valid_obs = [
+        o for o in facts.hba1c_observations
+        if (_parse_iso_date(o.get("event_date") or (o.get("raw_json") or {}).get("effectiveDateTime")) or datetime.min.replace(tzinfo=UTC)) <= as_of
+    ]
+
+    if not valid_obs:
         return [
             CareGap(
                 code="HBA1C_OVERDUE",
@@ -302,7 +307,7 @@ def rule_hba1c_overdue(facts: ClinicalFacts, as_of: datetime) -> list[CareGap]:
             )
         ]
 
-    latest = facts.hba1c_observations[0]
+    latest = valid_obs[0]
     raw = latest.get("raw_json") or {}
     event_date_str = latest.get("event_date") or raw.get("effectiveDateTime")
     latest_dt = _parse_iso_date(event_date_str)
@@ -311,6 +316,7 @@ def rule_hba1c_overdue(facts: ClinicalFacts, as_of: datetime) -> list[CareGap]:
 
     days_diff = (as_of.date() - latest_dt.date()).days
     days_diff = max(days_diff, 0)
+
 
     if days_diff > HBA1C_OVERDUE_DAYS:
         val_qty = raw.get("valueQuantity", {})
