@@ -16,7 +16,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ShieldCheck, Stethoscope, User, Loader2, KeyRound, AlertCircle, ExternalLink, Lock, Pill, Info } from 'lucide-react';
+import { ShieldCheck, Stethoscope, User, Loader2, KeyRound, AlertCircle, ExternalLink, Lock, Pill, Info, Check } from 'lucide-react';
 
 interface DemoPatientChip {
   abha_id: string;
@@ -461,15 +461,16 @@ export const LoginPage: React.FC = () => {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft block">
                   Active Licensed Profile:
                 </span>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-ink">{physicianNameInput}</p>
-                    <p className="text-[11px] text-ink-soft font-mono">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-ink truncate">{physicianNameInput}</p>
+                    <p className="text-[11px] text-ink-soft font-mono truncate">
                       License #{physicianRegInput} · {physicianDispensaryInput}
                     </p>
                   </div>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    ✓ Verified
+                  <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                    <Check className="h-3 w-3 stroke-[2.5]" />
+                    <span>Verified</span>
                   </span>
                 </div>
               </div>
@@ -530,15 +531,16 @@ export const LoginPage: React.FC = () => {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft block">
                   Active Licensed Practitioner:
                 </span>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-ink">{doctorNameInput}</p>
-                    <p className="text-[11px] text-ink-soft font-mono">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-ink truncate">{doctorNameInput}</p>
+                    <p className="text-[11px] text-ink-soft font-mono truncate">
                       NMC Reg #{doctorRegInput} · {doctorHospitalInput}
                     </p>
                   </div>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    ✓ Verified
+                  <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                    <Check className="h-3 w-3 stroke-[2.5]" />
+                    <span>Verified</span>
                   </span>
                 </div>
               </div>
