@@ -436,10 +436,12 @@ export const PhysicianView: React.FC = () => {
                   <Badge
                     key={gap.code}
                     variant="outline"
-                    className="border-amber-500/40 bg-card text-[11px] font-medium text-ink"
+                    className="border-amber-500/40 bg-card text-[11px] font-medium text-ink whitespace-normal text-left h-auto py-1.5 max-w-full items-start"
                   >
-                    <span className="mr-1 text-amber-600 font-bold">●</span>
-                    {gap.title}: {gap.message || gap.rationale || 'Monitoring recommended'}
+                    <span className="mr-1 text-amber-600 font-bold shrink-0 mt-[1px]">●</span>
+                    <span className="break-words">
+                      {gap.title}: {gap.message || gap.rationale || 'Monitoring recommended'}
+                    </span>
                   </Badge>
                 ))}
               </div>
@@ -478,11 +480,10 @@ export const PhysicianView: React.FC = () => {
                   disabled={isDispensing}
                   onClick={handleToggleDispense}
                   title={dispensed ? 'Click to toggle dispensed status in database' : 'Mark this prescription as dispensed in the database'}
-                  className={`rounded-full text-xs gap-1.5 transition-all ${
-                    dispensed
+                  className={`rounded-full text-xs gap-1.5 transition-all ${dispensed
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 hover:bg-emerald-100'
                       : 'border-teal-500/40 bg-teal-500/5 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10'
-                  }`}
+                    }`}
                 >
                   {isDispensing ? (
                     <span className="animate-spin h-3.5 w-3.5 border-2 border-teal-600 border-t-transparent rounded-full" />
