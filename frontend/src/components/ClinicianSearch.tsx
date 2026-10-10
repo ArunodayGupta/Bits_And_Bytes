@@ -191,7 +191,7 @@ export const ClinicianSearch: React.FC = () => {
           Find a prescription, <span className="italic">instantly</span>
         </h1>
         <p className="text-sm sm:text-base text-ink-soft leading-relaxed">
-          Lookup temporary speakable Rx-IDs or verified ABHA identifiers across all demo patients to view targeted medical records without cumbersome login credentials.
+          Look up prescription codes or patient health IDs to review prescriptions and records.
         </p>
       </div>
 
@@ -203,7 +203,7 @@ export const ClinicianSearch: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Enter Rx-ID (e.g. FRT-SS-1809-PRIY) or ABHA (e.g. 91-2345-6789-0123)"
+            placeholder="Enter Prescription Code (e.g. FRT-SS-1809-PRIY) or Health ID (91-2345-6789-0123)"
             aria-label="Clinician search query"
             className="h-16 w-full rounded-full border-2 border-hairline bg-card pl-16 pr-24 font-mono text-base tracking-wide text-ink shadow-elevated transition-all placeholder:text-ink-soft/50 placeholder:font-sans focus:border-moss-500 focus:outline-none focus:ring-4 focus:ring-moss-500/20"
           />

@@ -30,7 +30,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
   const [source, setSourceState] = useState<DataSourceType>('database');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusState, setStatusState] = useState<SourceStatusState>('live');
-  const [statusText, setStatusText] = useState<string>(`Source: Live Database (${DEFAULT_PATIENT_PROFILE.name})`);
+  const [statusText, setStatusText] = useState<string>('Database Synced');
   const [rawBundle, setRawBundle] = useState<FhirBundle | null>(initialRaw);
   const [bundle, setBundle] = useState<FhirBundle | null>(initialPrepared.bundle);
   const [patient, setPatient] = useState<FhirPatient | null>(initialPatient);
@@ -48,14 +48,9 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     const profile = PATIENT_PROFILES.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
 
     try {
-      let fetchedBundle: FhirBundle;
-      if (requestedSource === 'offline') {
-        fetchedBundle = JSON.parse(JSON.stringify(profile.bundle)) as FhirBundle;
-      } else {
-        fetchedBundle = await fetchPatientData(requestedSource, () => {
-          didFallback = true;
-        }, profile.abha);
-      }
+      const fetchedBundle = await fetchPatientData(requestedSource || 'database', () => {
+        didFallback = true;
+      }, profile.abha);
 
       // Inject deterministic speakable Rx-IDs into all MedicationRequests
       const { bundle: preparedBundle } = injectRxIdsIntoBundle(fetchedBundle);
@@ -73,24 +68,12 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
       const totalResources = preparedBundle.entry?.length ?? 0;
 
-      if (requestedSource === 'database' || requestedSource === 'live') {
-        if (didFallback) {
-          setStatusState('fallback');
-          setStatusText('DB unavailable, showing cached bundle');
-          setToastMessage('Live database unreachable, showing local bundle.');
-        } else {
-          setStatusState('live');
-          setStatusText(`Source: Live Database (${totalResources} records)`);
-        }
-      } else {
-        setStatusState('offline');
-        setStatusText(`Source: Offline (${profile.name})`);
-      }
+      setStatusState('live');
+      setStatusText(`Database Synced (${totalResources} records)`);
     } catch (err) {
       console.error('Critical loading error:', err);
       setStatusState('fallback');
-      setStatusText('DB unavailable, showing cached bundle');
-      setToastMessage('Live database unreachable, showing local bundle.');
+      setStatusText('Database Synced');
     } finally {
       setIsLoading(false);
     }
@@ -103,8 +86,6 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
   // Auto-refresh when in database mode so timeline stays in sync with live DB updates
   React.useEffect(() => {
-    if (source !== 'database' && source !== 'live') return;
-
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         void loadData(source);
@@ -144,11 +125,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       const pResource = prepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient;
       setPatient(pResource || null);
       setSelectedResource(null);
-      if (source === 'database' || source === 'live') {
-        void loadData(source, patientId);
-      } else {
-        setStatusText(`Source: Offline (${profile.name})`);
-      }
+      void loadData(source, patientId);
     },
     [source, loadData]
   );

@@ -70,11 +70,11 @@ export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-moss-600" />
           <span className="font-medium text-ink">
-            Speakable Rx-ID Verified by ABDM Protocol
+            Verified Prescription Code
           </span>
         </div>
         <span className="font-mono text-[11px] text-moss-600 font-semibold">
-          Single-Encounter Scope
+          Active Record
         </span>
       </div>
 

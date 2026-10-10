@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Stethoscope, User, Menu, X, Leaf, House, LogOut, ShieldCheck, Pill } from 'lucide-react';
+import { Stethoscope, User, Menu, X, Leaf, LogOut, ShieldCheck, Pill } from 'lucide-react';
 import { usePatientData } from '@/context/usePatientData';
 import { useAuth } from '@/context/AuthContext';
 import { PatientCard } from './PatientCard';
-import { DataSourceSelect } from './DataSourceSelect';
 import { ThemeToggle } from './ThemeToggle';
 
 export const Navbar: React.FC = () => {
@@ -17,12 +16,14 @@ export const Navbar: React.FC = () => {
   const isLanding = location.pathname === '/';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
 
-  const dotColorClass =
-    statusState === 'live'
-      ? 'bg-emerald-500 ring-emerald-500/30'
-      : statusState === 'fallback'
-      ? 'bg-amber-500 ring-amber-500/30'
-      : 'bg-stone-400 ring-stone-400/20';
+  const dashboardRoute =
+    role === 'doctor'
+      ? '/doctor'
+      : role === 'physician' || role === 'clinician'
+      ? '/physician'
+      : role === 'admin'
+      ? '/admin'
+      : '/patient';
 
   return (
     <header className="sticky top-4 z-40 mx-auto w-full max-w-[1640px] px-5 sm:px-8 lg:px-12">
@@ -30,27 +31,21 @@ export const Navbar: React.FC = () => {
         aria-label="Main Navigation"
         className="glass-card flex items-center justify-between rounded-full border border-hairline px-4 py-2.5 shadow-elevated transition-all"
       >
-        {/* Left: Brand or Role-Scoped Identity */}
+        {/* Left: Brand Logo & User Role Identity */}
         <div className="flex items-center gap-3">
-          {/* Always show clean brand logo if on landing or auth pages, or if unauthenticated */}
-          {isLanding || isAuthPage || !isAuthenticated ? (
-            <Link to="/" className="flex items-center gap-2 font-serif text-xl text-ink">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper">
-                <Leaf className="h-4 w-4" />
-              </span>
-              <span>HealthSafe</span>
-            </Link>
-          ) : (
-            <div className="flex items-center gap-2.5">
-              <Link
-                to="/"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-card px-3 text-xs font-semibold text-ink transition-colors hover:bg-paper-2"
-                aria-label="Return to home page"
-              >
-                <House className="h-3.5 w-3.5 text-moss-600" />
-                <span className="hidden xl:inline">Home</span>
-              </Link>
+          {/* Brand Logo - links to role dashboard when logged in, or root when guest */}
+          <Link
+            to={isAuthenticated ? dashboardRoute : '/'}
+            className="flex items-center gap-2 font-serif text-xl text-ink hover:opacity-95 transition-opacity"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-moss-600 text-paper">
+              <Leaf className="h-4 w-4" />
+            </span>
+            <span>HealthSafe</span>
+          </Link>
 
+          {isAuthenticated && (
+            <div className="flex items-center gap-2.5">
               {/* Only Patient role sees PatientCard */}
               {role === 'patient' && (
                 <NavLink to="/patient" className="hover:opacity-90 transition-opacity">
@@ -60,24 +55,24 @@ export const Navbar: React.FC = () => {
 
               {/* Physician badge */}
               {(role === 'physician' || role === 'clinician') && (
-                <div className="flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3.5 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300">
-                  <Pill className="h-4 w-4 text-teal-600" />
+                <div className="flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
+                  <Pill className="h-3.5 w-3.5 text-teal-600" />
                   <span>{userName || 'Dr. Dispensary Physician'}</span>
                 </div>
               )}
 
               {/* Doctor badge */}
               {role === 'doctor' && (
-                <div className="flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3.5 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
-                  <Stethoscope className="h-4 w-4 text-sky-600" />
+                <div className="flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                  <Stethoscope className="h-3.5 w-3.5 text-sky-600" />
                   <span>{userName || 'Dr. Rajesh Rao, MD'}</span>
                 </div>
               )}
 
               {/* Admin badge */}
               {role === 'admin' && (
-                <div className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  <ShieldCheck className="h-4 w-4 text-amber-600" />
+                <div className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
                   <span>Admin Console</span>
                 </div>
               )}
@@ -167,38 +162,37 @@ export const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Right: Theme Toggle, Auth Actions & Scoped Controls */}
-        <div className="hidden lg:flex items-center gap-3">
+        {/* Right: Theme Toggle, User ABHA, & Prominent Logout */}
+        <div className="flex items-center gap-2.5">
           <ThemeToggle />
 
           {isAuthenticated && !isAuthPage ? (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {role === 'patient' && abhaId && (
                 <span
                   title={`Active ABHA: ${abhaId}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-moss-500/10 border border-moss-500/20 px-3 py-1 font-mono text-xs font-medium text-moss-700 dark:text-moss-400"
+                  className="hidden md:inline-flex items-center gap-1 rounded-full bg-moss-500/10 border border-moss-500/20 px-3 py-1 font-mono text-xs font-medium text-moss-700 dark:text-moss-400"
                 >
                   <User className="h-3 w-3" />
                   {abhaId.replace(/^(\d{2})-\d{4}-\d{4}-(\d{4})$/, '$1-••••-••••-$2')}
                 </span>
               )}
 
-              {role === 'patient' && <DataSourceSelect />}
-
+              {/* Prominent Always-Visible Logout Button */}
               <button
                 type="button"
                 onClick={() => {
                   logout();
                   navigate('/login');
                 }}
-                className="flex items-center gap-1 rounded-full border border-hairline px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                className="flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 px-3.5 py-1.5 text-xs font-semibold transition-colors shadow-sm"
               >
-                <LogOut className="h-3 w-3" />
+                <LogOut className="h-3.5 w-3.5" />
                 <span>Logout</span>
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               {location.pathname !== '/login' && (
                 <Link
                   to="/login"
@@ -217,15 +211,12 @@ export const Navbar: React.FC = () => {
               )}
             </div>
           )}
-        </div>
 
-        {/* Mobile menu toggle */}
-        <div className="flex lg:hidden items-center gap-2">
-          <ThemeToggle />
+          {/* Mobile menu toggle */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-paper-2 text-ink"
+            className="flex sm:hidden h-9 w-9 items-center justify-center rounded-full border border-hairline bg-paper-2 text-ink"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -233,16 +224,16 @@ export const Navbar: React.FC = () => {
         </div>
       </nav>
 
-      {/* Mobile Drawer / Dropdown */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="mt-2 flex flex-col gap-3 rounded-20 border border-hairline bg-card p-4 shadow-elevated lg:hidden animate-fade-up">
+        <div className="mt-2 flex flex-col gap-3 rounded-20 border border-hairline bg-card p-4 shadow-elevated sm:hidden animate-fade-up">
           {isAuthenticated && !isAuthPage ? (
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
                 Active Role: {role?.toUpperCase()}
               </span>
 
-              {/* Strictly Role-Scoped Mobile Links */}
+              {/* Role-Scoped Mobile Link */}
               {role === 'patient' && (
                 <NavLink
                   to="/patient"
@@ -287,12 +278,6 @@ export const Navbar: React.FC = () => {
                 </NavLink>
               )}
 
-              {role === 'patient' && (
-                <div className="border-t border-hairline pt-2">
-                  <DataSourceSelect />
-                </div>
-              )}
-
               <button
                 type="button"
                 onClick={() => {
@@ -300,7 +285,7 @@ export const Navbar: React.FC = () => {
                   setMobileMenuOpen(false);
                   navigate('/login');
                 }}
-                className="mt-2 flex items-center justify-center gap-2 rounded-full border border-hairline py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                className="mt-2 flex items-center justify-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 py-2 text-xs font-semibold text-destructive hover:bg-destructive/20"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 <span>Logout</span>
@@ -308,14 +293,6 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <Link
-                to="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-full border border-hairline py-2 text-xs font-semibold text-ink"
-              >
-                <House className="h-3.5 w-3.5 text-moss-600" />
-                Home
-              </Link>
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}

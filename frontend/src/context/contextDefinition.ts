@@ -8,8 +8,8 @@ import type {
 } from '@/lib/fhir/types';
 import type { PatientProfile } from '@/data/patients';
 
-export type DataSourceType = 'database' | 'offline' | 'live';
-export type SourceStatusState = 'offline' | 'live' | 'fallback';
+export type DataSourceType = 'database' | 'live';
+export type SourceStatusState = 'live' | 'fallback';
 
 export interface PatientDataContextValue {
   source: DataSourceType;

@@ -89,7 +89,7 @@ export const PatientView: React.FC = () => {
           </h1>
 
           <p className="text-base sm:text-lg text-ink-soft leading-relaxed max-w-2xl mb-8">
-            Consolidated outpatient consultations, diagnoses, lab trends and prescriptions in compliance with NRCeS / ABDM FHIR R4 standard.
+            Your complete medical consultations, lab test trends, and prescriptions organized in one timeline.
           </p>
 
           {/* 4 Frosted Glass Stat Cards */}
@@ -102,7 +102,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.encounters}
               </div>
-              <span className="text-[11px] text-ink-soft">NRCeS Validated</span>
+              <span className="text-[11px] text-ink-soft">Doctor Visits</span>
             </div>
 
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
@@ -113,7 +113,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.conditions}
               </div>
-              <span className="text-[11px] text-ink-soft">SNOMED CT</span>
+              <span className="text-[11px] text-ink-soft">Health Conditions</span>
             </div>
 
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
@@ -124,7 +124,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.medications}
               </div>
-              <span className="text-[11px] text-ink-soft">Rx-ID Enabled</span>
+              <span className="text-[11px] text-ink-soft">Prescriptions</span>
             </div>
 
             <div className="glass-card rounded-20 p-4 shadow-sm border border-white/40">
@@ -135,7 +135,7 @@ export const PatientView: React.FC = () => {
               <div className="font-serif text-3xl font-medium text-ink">
                 {stats.labs}
               </div>
-              <span className="text-[11px] text-ink-soft">LOINC / UCUM</span>
+              <span className="text-[11px] text-ink-soft">Lab Results</span>
             </div>
           </div>
         </div>

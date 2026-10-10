@@ -227,7 +227,7 @@ export const AdminView: React.FC = () => {
               {metrics ? metrics.total_prescriptions : '—'}
             </div>
             <p className="mt-1 text-[11px] text-ink-soft">
-              Speakable 16-character Rx-IDs
+              Active Prescriptions in Database
             </p>
           </CardContent>
         </Card>
@@ -515,7 +515,7 @@ export const AdminView: React.FC = () => {
             <CardHeader className="bg-paper-2/40 border-b border-hairline py-3 px-6">
               <CardTitle className="text-sm font-semibold">Prescriptions Registry</CardTitle>
               <CardDescription className="text-xs">
-                Speakable prescriptions verified across hospitals and doctors.
+                Verified electronic prescriptions across hospitals and clinics.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">

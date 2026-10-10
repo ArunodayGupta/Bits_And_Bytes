@@ -10,6 +10,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientData } from '@/context/usePatientData';
+import { GoogleAuthDialog } from '@/components/GoogleAuthDialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,7 @@ export const LoginPage: React.FC = () => {
   const [adminPass, setAdminPass] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [googleLoading, setGoogleLoading] = useState<boolean>(false);
+  const [googleDialogOpen, setGoogleDialogOpen] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [demoPatients, setDemoPatients] = useState<DemoPatientChip[]>(DEFAULT_DEMO_PATIENTS);
 
@@ -170,20 +172,22 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleGoogleSignIn = () => {
-    setGoogleLoading(true);
-    setTimeout(() => {
-      loginWithGoogle('demo.user@gmail.com', 'Google User', activeTab);
-      setGoogleLoading(false);
-      if (activeTab === 'physician') {
-        navigate('/physician', { replace: true });
-      } else if (activeTab === 'doctor') {
-        navigate('/doctor', { replace: true });
-      } else if (activeTab === 'admin') {
-        navigate('/admin', { replace: true });
-      } else {
-        navigate('/patient', { replace: true });
-      }
-    }, 500);
+    // Open Google's official sign-in page in a popup window
+    const width = 520;
+    const height = 620;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    try {
+      window.open(
+        'https://accounts.google.com/AccountChooser?service=lso',
+        'google_auth_window',
+        `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no`
+      );
+    } catch {
+      // Popups may be blocked
+    }
+    // Open interactive Google account selector dialog
+    setGoogleDialogOpen(true);
   };
 
   return (
@@ -195,7 +199,7 @@ export const LoginPage: React.FC = () => {
             <Info className="h-3.5 w-3.5" />
             Demo only: no real authentication and no real ABDM connection
           </span>
-          <span className="font-mono text-[11px] font-semibold">Demo Sandbox</span>
+          <span className="font-mono text-[11px] font-semibold">Ready</span>
         </div>
 
         <CardHeader className="text-center pb-4 pt-6 px-6">
@@ -386,10 +390,10 @@ export const LoginPage: React.FC = () => {
               <div className="rounded-20 border border-teal-500/20 bg-teal-500/5 p-4 text-left space-y-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300">
                   <Pill className="h-4 w-4 text-teal-600" />
-                  Jan Aushadhi Dispensary Physician Portal
+                  Dispensary Physician Portal
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Takes the speakable Rx-ID (e.g. <code className="font-mono bg-paper-2 px-1 rounded">APL-RR-1410-RAME</code>) or Patient ABHA ID to evaluate prescribed medicines, find PMBJP Jan Aushadhi generic substitutes, calculate monthly savings in rupees, and check active care-gap alerts.
+                  Enter the Prescription ID (e.g. <code className="font-mono bg-paper-2 px-1 rounded">APL-RR-1410-RAME</code>) or Patient ID to review prescribed medicines, find affordable generic alternatives, and calculate monthly savings.
                 </p>
               </div>
               <Button
@@ -409,7 +413,7 @@ export const LoginPage: React.FC = () => {
                   Clinical Doctor Portal
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Look up complete patient clinical history (conditions, blood pressure, HbA1c vitals, lab reports) and generate new verified electronic prescriptions directly with deterministic speakable Rx-IDs.
+                  Look up patient medical records, lab reports, and write verified digital prescriptions.
                 </p>
               </div>
               <Button
@@ -429,7 +433,7 @@ export const LoginPage: React.FC = () => {
                   System Administrator Portal
                 </div>
                 <p className="text-xs text-ink-soft leading-relaxed">
-                  Governance across all entities: manage patients, doctors, physicians, prescriptions, and FHIR resources, while inspecting live audit request telemetry (<code className="font-mono bg-paper-2 px-1 rounded">access_logs</code>).
+                  Manage patients, doctors, prescriptions, and inspect system audit logs.
                 </p>
               </div>
               <Button
@@ -449,7 +453,7 @@ export const LoginPage: React.FC = () => {
                 <div className="w-full border-t border-hairline" />
               </div>
               <span className="relative bg-card px-3 text-[11px] uppercase tracking-wider text-ink-soft">
-                Or Fast-Track Single Sign-On
+                Or Sign In with Google
               </span>
             </div>
 
@@ -458,7 +462,7 @@ export const LoginPage: React.FC = () => {
               variant="outline"
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
-              className="w-full h-10 rounded-full border border-hairline bg-paper-2 hover:bg-card flex items-center justify-center gap-2.5 text-xs font-semibold shadow-sm"
+              className="w-full h-11 rounded-full border border-hairline bg-paper-2 hover:bg-card flex items-center justify-center gap-2.5 text-xs font-semibold shadow-sm"
             >
               {googleLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-ink-soft" />
@@ -482,7 +486,7 @@ export const LoginPage: React.FC = () => {
                   />
                 </svg>
               )}
-              <span>Sign In with Google (Clerk SSO as {activeTab.toUpperCase()})</span>
+              <span>Sign In with Google</span>
             </Button>
           </div>
         </CardContent>
@@ -490,10 +494,17 @@ export const LoginPage: React.FC = () => {
         <CardFooter className="bg-paper-2/50 border-t border-hairline py-4 px-6 flex justify-center text-xs text-ink-soft">
           <span>Need a new account?</span>
           <Link to="/signup" className="ml-1.5 font-semibold text-moss-700 hover:underline dark:text-moss-400">
-            Sign Up with Google / Clerk
+            Sign Up
           </Link>
         </CardFooter>
       </Card>
+
+      {/* Google Authentication Dialog */}
+      <GoogleAuthDialog
+        open={googleDialogOpen}
+        onOpenChange={setGoogleDialogOpen}
+        defaultRole={activeTab}
+      />
     </div>
   );
 };

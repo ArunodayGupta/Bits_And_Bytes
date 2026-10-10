@@ -140,7 +140,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onInspect }) => {
           {event.rxId && (
             <div className="mt-2 pt-2 border-t border-hairline/60">
               <span className="text-[10px] uppercase tracking-wider font-semibold text-ink-soft block mb-1">
-                Prescription ID (ABDM Token)
+                Prescription Code
               </span>
               <RxBadge rxId={event.rxId} />
             </div>

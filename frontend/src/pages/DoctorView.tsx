@@ -167,7 +167,7 @@ export const DoctorView: React.FC = () => {
             Electronic Prescriptions & Patient History
           </h1>
           <p className="text-sm text-ink-soft mt-1 max-w-2xl">
-            Create validated NRCeS FHIR R4 electronic prescriptions with speakable Rx-IDs or inspect complete longitudinal history, chronic conditions, and past vitals.
+            Write electronic prescriptions or look up patient medical history, chronic conditions, and past lab vitals.
           </p>
         </div>
 
@@ -210,11 +210,11 @@ export const DoctorView: React.FC = () => {
                 <span className="text-lg">Prescription Successfully Issued & Synced to Database</span>
               </div>
 
-              {/* Speakable Rx Badge */}
+              {/* Prescription Code Badge */}
               <div className="rounded-24 border border-moss-500/30 bg-moss-50/60 dark:bg-moss-950/20 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <span className="text-xs uppercase tracking-wider text-ink-soft font-semibold block">
-                    Speakable Rx-ID (Read aloud to Patient)
+                    Prescription Code (Share with Patient)
                   </span>
                   <p className="font-mono text-3xl font-bold tracking-wider text-moss-700 dark:text-moss-300 mt-1">
                     {createdRx.rx_id}
@@ -258,7 +258,7 @@ export const DoctorView: React.FC = () => {
               <CardHeader className="p-0 pb-6 border-b border-hairline">
                 <CardTitle className="font-serif text-2xl">Create Electronic Prescription</CardTitle>
                 <CardDescription className="text-xs">
-                  Issue digital prescription records adhering to ABDM/NRCeS FHIR R4 standard.
+                  Issue digital prescription records with generic medicine matching and care reminders.
                 </CardDescription>
               </CardHeader>
 
@@ -489,18 +489,18 @@ export const DoctorView: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 font-serif text-xl text-white">
-                      {patientDetails.patient.name?.substring(0, 2).toUpperCase() || 'PT'}
+                      {patientDetails?.patient?.name?.substring(0, 2).toUpperCase() || 'PT'}
                     </div>
                     <div>
                       <h3 className="font-serif text-2xl font-bold text-ink">
-                        {patientDetails.patient.name}
+                        {patientDetails?.patient?.name || 'Patient Record'}
                       </h3>
                       <div className="flex items-center gap-2 text-xs text-ink-soft font-mono mt-0.5">
-                        <span>ABHA: {patientDetails.patient.abha_id}</span>
+                        <span>ABHA: {patientDetails?.patient?.abha_id || lookupAbha}</span>
                         <span>•</span>
-                        <span>{patientDetails.patient.gender?.toUpperCase()}</span>
+                        <span>{(patientDetails?.patient?.gender || 'Unknown').toUpperCase()}</span>
                         <span>•</span>
-                        <span>DOB: {patientDetails.patient.dob || '1970-05-15'}</span>
+                        <span>DOB: {patientDetails?.patient?.dob || 'Not specified'}</span>
                       </div>
                     </div>
                   </div>
