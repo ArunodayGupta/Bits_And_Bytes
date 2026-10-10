@@ -183,6 +183,40 @@ def test_confirm_rebuilds_observation_and_clears_care_gap():
     assert "BP_RISING_TREND" in after_codes
 
 
+def test_confirm_with_medications_creates_medication_requests():
+    payload = {
+        "abha_id": "91-1234-5678-9012",
+        "effective_date": "2024-10-14",
+        "items": [],
+        "medications": [
+            {
+                "name": "Tab. Metformin 500 mg",
+                "dosage": "500 mg",
+                "frequency": "1-0-1 (after food)",
+                "duration": "30 days",
+            },
+            {
+                "name": "Tab. Amlodipine 5 mg",
+                "dosage": "5 mg",
+                "frequency": "0-0-1 (at night)",
+                "duration": "30 days",
+            },
+        ],
+        "acknowledged": True,
+    }
+
+    res = client.post("/api/fhir/scan-report/confirm", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert len(data["resources"]) == 2
+    res_types = [r["resourceType"] for r in data["resources"]]
+    assert res_types == ["MedicationRequest", "MedicationRequest"]
+    assert data["resources"][0]["medicationCodeableConcept"]["text"] == "Tab. Metformin 500 mg"
+    assert "patient-91-1234-5678-9012" in data["resources"][0]["subject"]["reference"]
+
+
+
 def test_env_example_has_no_secrets():
     """Assert that .env.example contains no real-looking API keys or secret tokens."""
     env_example_path = Path(__file__).resolve().parent.parent / ".env.example"

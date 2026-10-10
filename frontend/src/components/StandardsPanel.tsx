@@ -48,6 +48,22 @@ function extractCodings(obj: unknown, path = ''): ExtractedCoding[] {
   return codings;
 }
 
+function getCodingTitle(coding: ExtractedCoding): string {
+  if (coding.display && coding.display.trim()) {
+    return coding.display;
+  }
+  if (coding.system?.includes('unitsofmeasure.org')) {
+    return `Measurement Unit: ${coding.code || 'Unit'}`;
+  }
+  if (coding.system?.includes('source') || coding.code === 'ocr-scan') {
+    return 'Source: Patient Scanned Document';
+  }
+  if (coding.code) {
+    return `Concept Code: ${coding.code}`;
+  }
+  return 'Clinical Terminology Concept';
+}
+
 export const StandardsPanel: React.FC<StandardsPanelProps> = ({ resource }) => {
   const profiles = resource.meta?.profile || [];
   const codings = extractCodings(resource);
@@ -71,7 +87,7 @@ export const StandardsPanel: React.FC<StandardsPanelProps> = ({ resource }) => {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-emerald-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-stone-300">
+          <span className="text-xs font-semibold uppercase tracking-wider text-stone-200">
             Standards & Interoperability
           </span>
         </div>
@@ -84,7 +100,7 @@ export const StandardsPanel: React.FC<StandardsPanelProps> = ({ resource }) => {
 
       {/* Profiles declared */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] uppercase tracking-wider text-stone-400 font-medium">
+        <span className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
           Declared Profiles
         </span>
         {profiles.length > 0 ? (
@@ -92,11 +108,11 @@ export const StandardsPanel: React.FC<StandardsPanelProps> = ({ resource }) => {
             {profiles.map((url, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between gap-2 rounded-lg bg-stone-900/60 p-2 text-xs border border-white/5"
+                className="flex items-center justify-between gap-2 rounded-lg bg-stone-900/60 p-2 text-xs border border-white/10"
               >
                 <div className="flex items-center gap-2 truncate">
                   <span className="text-[10px] text-stone-400 font-mono">Profile declared:</span>
-                  <span className="font-mono text-stone-200 truncate">{url}</span>
+                  <span className="font-mono text-stone-100 truncate">{url}</span>
                 </div>
                 <a
                   href={url}
@@ -118,7 +134,7 @@ export const StandardsPanel: React.FC<StandardsPanelProps> = ({ resource }) => {
       {/* Extracted Codings & Terminology */}
       {uniqueCodings.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-[11px] uppercase tracking-wider text-stone-400 font-medium">
+          <span className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
             Clinical Terminologies & Codings ({uniqueCodings.length})
           </span>
 
@@ -130,13 +146,13 @@ export const StandardsPanel: React.FC<StandardsPanelProps> = ({ resource }) => {
               return (
                 <div
                   key={i}
-                  className="flex flex-col gap-1 rounded-lg bg-stone-900/50 p-2.5 border border-white/5 text-xs"
+                  className="flex flex-col gap-1 rounded-lg bg-stone-900/60 p-2.5 border border-white/10 text-xs"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Tag className="h-3 w-3 text-stone-400" />
-                      <span className="font-semibold text-stone-200">
-                        {c.display || 'Unnamed concept'}
+                      <span className="font-semibold text-stone-100">
+                        {getCodingTitle(c)}
                       </span>
                     </div>
                     <span

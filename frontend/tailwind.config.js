@@ -20,9 +20,17 @@ export default {
         'ink-soft': 'var(--ink-soft)',
         hairline: 'var(--hairline)',
         moss: {
+          50: '#F4F7EE',
           100: 'var(--moss-100)',
+          200: '#D2E0BD',
+          300: '#B4CBA0',
+          400: '#94B37F',
           500: 'var(--moss-500)',
           600: 'var(--moss-600)',
+          700: '#3D552C',
+          800: '#2D3F20',
+          900: '#1D2A15',
+          950: '#10170B',
         },
         teal: {
           700: 'var(--teal-700)',

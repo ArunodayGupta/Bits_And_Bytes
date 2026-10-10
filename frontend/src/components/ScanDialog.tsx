@@ -32,6 +32,9 @@ import {
   Loader2,
   Calendar,
   Sparkles,
+  Pill,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import type { FhirObservation } from '@/lib/fhir/types';
 
@@ -49,10 +52,20 @@ interface ExtractedItemState {
   fhir_preview: any;
 }
 
+interface ExtractedMedicationState {
+  name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  confidence: number;
+  included: boolean;
+}
+
 interface ScanDraftState {
   provider: string;
   report_date: string;
   items: ExtractedItemState[];
+  medications: ExtractedMedicationState[];
   unmapped_rows: any[];
   warnings: string[];
 }
@@ -192,13 +205,22 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
         }
 
         const data = await scanRes.json();
+        const mappedMeds: ExtractedMedicationState[] = (data.medications || []).map((m: any) => ({
+          name: m.name || '',
+          dosage: m.dosage || '',
+          frequency: m.frequency || '',
+          duration: m.duration || '',
+          confidence: typeof m.confidence === 'number' ? m.confidence : 95,
+          included: true,
+        }));
         setDraft({
           ...data,
           report_date: data.report_date || '2024-10-20',
-          items: data.items.map((i: any) => ({
+          items: (data.items || []).map((i: any) => ({
             ...i,
             reviewedAcknowledged: !i.needs_review,
           })),
+          medications: mappedMeds,
         });
         setReportDate(data.report_date || '2024-10-20');
         setStep('review');
@@ -232,13 +254,22 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
       }
 
       const data = await scanRes.json();
+      const mappedMeds: ExtractedMedicationState[] = (data.medications || []).map((m: any) => ({
+        name: m.name || '',
+        dosage: m.dosage || '',
+        frequency: m.frequency || '',
+        duration: m.duration || '',
+        confidence: typeof m.confidence === 'number' ? m.confidence : 95,
+        included: true,
+      }));
       setDraft({
         ...data,
         report_date: data.report_date || new Date().toISOString().split('T')[0],
-        items: data.items.map((i: any) => ({
+        items: (data.items || []).map((i: any) => ({
           ...i,
           reviewedAcknowledged: !i.needs_review,
         })),
+        medications: mappedMeds,
       });
       setReportDate(data.report_date || new Date().toISOString().split('T')[0]);
       setStep('review');
@@ -282,12 +313,54 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
     setDraft({ ...draft, items: updated });
   };
 
+  const handleToggleMedicationIncluded = (index: number) => {
+    if (!draft) return;
+    const updated = [...draft.medications];
+    updated[index] = { ...updated[index], included: !updated[index].included };
+    setDraft({ ...draft, medications: updated });
+  };
+
+  const handleMedicationFieldChange = (
+    index: number,
+    field: 'name' | 'dosage' | 'frequency' | 'duration',
+    val: string
+  ) => {
+    if (!draft) return;
+    const updated = [...draft.medications];
+    updated[index] = { ...updated[index], [field]: val };
+    setDraft({ ...draft, medications: updated });
+  };
+
+  const handleAddEmptyMedication = () => {
+    if (!draft) return;
+    const newMed: ExtractedMedicationState = {
+      name: '',
+      dosage: '',
+      frequency: '',
+      duration: '',
+      confidence: 100,
+      included: true,
+    };
+    setDraft({ ...draft, medications: [...draft.medications, newMed] });
+  };
+
+  const handleRemoveMedication = (index: number) => {
+    if (!draft) return;
+    const updated = draft.medications.filter((_, i) => i !== index);
+    setDraft({ ...draft, medications: updated });
+  };
+
   // Check if confirmation is allowed
   const allNeedsReviewHandled =
     draft?.items.every((i) => !i.needs_review || i.reviewedAcknowledged) ?? false;
+  const hasItemsOrMeds = Boolean(
+    draft &&
+    ((draft.items && draft.items.length > 0) ||
+      (draft.medications && draft.medications.some((m) => m.included && m.name.trim())))
+  );
   const canConfirm = Boolean(
     draft &&
-    draft.items.length > 0 &&
+    hasItemsOrMeds &&
     allNeedsReviewHandled &&
     userAcknowledgedAll &&
     reportDate
@@ -306,16 +379,24 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
     const payload = {
       abha_id: effectiveAbha,
       effective_date: reportDate,
-      items: draft.items.map((i) => ({
+      items: (draft.items || []).map((i) => ({
         test_key: i.test_key,
         value: i.value,
         unit: i.unit,
       })),
+      medications: (draft.medications || [])
+        .filter((m) => m.included && m.name.trim())
+        .map((m) => ({
+          name: m.name.trim(),
+          dosage: m.dosage,
+          frequency: m.frequency,
+          duration: m.duration,
+        })),
       acknowledged: true,
     };
 
     try {
-      let savedResources: FhirObservation[] = [];
+      let savedResources: any[] = [];
 
       // 1. Always attempt server-side DB push
       try {
@@ -335,9 +416,9 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
         console.warn('Backend confirm endpoint error, proceeding with local fallback:', err);
       }
 
-      // 2. If server did not return resources, construct standard FHIR observations locally
+      // 2. If server did not return resources, construct standard FHIR resources locally
       if (savedResources.length === 0) {
-        savedResources = draft.items.map((item) => ({
+        const localObs = (draft.items || []).map((item) => ({
           resourceType: 'Observation',
           id: `obs-scan-${item.test_key}-${Date.now()}`,
           status: 'preliminary',
@@ -372,9 +453,38 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
             tag: [{ system: 'https://phr-demo.example.org/source', code: 'ocr-scan' }],
           },
         }));
+
+        const localMeds = (draft.medications || [])
+          .filter((m) => m.included && m.name.trim())
+          .map((m, idx) => ({
+            resourceType: 'MedicationRequest',
+            id: `medreq-scan-${Date.now()}-${idx}`,
+            status: 'active',
+            intent: 'order',
+            medicationCodeableConcept: {
+              text: m.name,
+              coding: [{ system: 'http://snomed.info/sct', display: m.name }],
+            },
+            subject: {
+              reference: `urn:uuid:patient-${effectiveAbha}`,
+              display: 'Patient',
+            },
+            authoredOn: `${reportDate}T10:00:00+05:30`,
+            dosageInstruction: [
+              {
+                text: [m.dosage, m.frequency, m.duration].filter(Boolean).join(' - ') || 'As directed',
+              },
+            ],
+            meta: {
+              profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest'],
+              tag: [{ system: 'https://phr-demo.example.org/source', code: 'ocr-scan' }],
+            },
+          }));
+
+        savedResources = [...localObs, ...localMeds];
       }
 
-      // 3. Inject all saved resources into timeline bundle
+      // 3. Inject all saved resources into timeline bundle & session storage
       for (const r of savedResources) {
         addObservationToBundle(r);
       }
@@ -398,11 +508,10 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
         <DialogHeader>
           <div className="flex items-center gap-2 text-moss-600">
             <Camera className="h-5 w-5" />
-            <DialogTitle className="text-xl">Scan Lab Report (Scan-to-FHIR)</DialogTitle>
+            <DialogTitle className="text-xl">Scan Lab Report or Prescription (Scan-to-FHIR)</DialogTitle>
           </div>
           <DialogDescription className="text-xs text-ink-soft">
-            Photograph or upload a diagnostic lab report. Parameters are extracted in memory with
-            OCR for your clinical verification and converted to HL7 FHIR R4 Observations.
+            Photograph or upload a diagnostic lab report or doctor's prescription. Parameters and medications are extracted for clinical verification and converted to HL7 FHIR R4.
           </DialogDescription>
         </DialogHeader>
 
@@ -522,108 +631,240 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
               </div>
             </div>
 
-            {/* Extracted Items Table */}
-            <div className="rounded-xl border border-hairline overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted text-ink-soft uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="p-3">Test Parameter</th>
-                      <th className="p-3 w-28">Result</th>
-                      <th className="p-3 w-24">Unit</th>
-                      <th className="p-3">Confidence</th>
-                      <th className="p-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-hairline">
-                    {draft.items.map((item, idx) => {
-                      const isNeedsReview = item.needs_review;
-                      return (
-                        <tr
-                          key={item.test_key}
-                          className={`transition-colors ${
-                            isNeedsReview
-                              ? 'bg-amber-500/10 dark:bg-amber-500/15'
-                              : 'hover:bg-muted/30'
-                          }`}
-                        >
-                          <td className="p-3">
-                            <span className="font-semibold text-ink block">{item.display}</span>
-                            <span className="text-[10px] font-mono text-ink-soft">
-                              LOINC: {item.loinc}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <Input
-                              type="number"
-                              step="any"
-                              value={item.value}
-                              onChange={(e) => handleItemValueChange(idx, e.target.value)}
-                              className="h-8 text-xs font-mono"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <Input
-                              type="text"
-                              value={item.unit}
-                              onChange={(e) => handleItemUnitChange(idx, e.target.value)}
-                              className="h-8 text-xs font-mono"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] font-mono ${
-                                item.confidence >= 90
-                                  ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                                  : 'border-amber-500/30 text-amber-700 dark:text-amber-400'
+            {/* SECTION 1: Diagnostic Lab Biomarkers (if present) */}
+            {draft.items && draft.items.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-ink px-1">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-moss-600" />
+                    Diagnostic Lab Biomarkers ({draft.items.length})
+                  </span>
+                </div>
+                <div className="rounded-xl border border-hairline overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted text-ink-soft uppercase tracking-wider text-[10px]">
+                        <tr>
+                          <th className="p-3">Test Parameter</th>
+                          <th className="p-3 w-28">Result</th>
+                          <th className="p-3 w-24">Unit</th>
+                          <th className="p-3">Confidence</th>
+                          <th className="p-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-hairline">
+                        {draft.items.map((item, idx) => {
+                          const isNeedsReview = item.needs_review;
+                          return (
+                            <tr
+                              key={item.test_key}
+                              className={`transition-colors ${
+                                isNeedsReview
+                                  ? 'bg-amber-500/10 dark:bg-amber-500/15'
+                                  : 'hover:bg-muted/30'
                               }`}
                             >
-                              {item.confidence.toFixed(0)}%
-                            </Badge>
-                          </td>
-                          <td className="p-3">
-                            {isNeedsReview ? (
-                              <div className="space-y-1">
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  Needs review
+                              <td className="p-3">
+                                <span className="font-semibold text-ink block">{item.display}</span>
+                                <span className="text-[10px] font-mono text-ink-soft">
+                                  LOINC: {item.loinc}
                                 </span>
-                                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-ink-soft">
-                                  <input
-                                    type="checkbox"
-                                    checked={item.reviewedAcknowledged}
-                                    onChange={() => handleToggleItemReviewed(idx)}
-                                    className="rounded border-hairline"
-                                  />
-                                  <span>Verified</span>
-                                </label>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Clean
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                              </td>
+                              <td className="p-3">
+                                <Input
+                                  type="number"
+                                  step="any"
+                                  value={item.value}
+                                  onChange={(e) => handleItemValueChange(idx, e.target.value)}
+                                  className="h-8 text-xs font-mono"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Input
+                                  type="text"
+                                  value={item.unit}
+                                  onChange={(e) => handleItemUnitChange(idx, e.target.value)}
+                                  className="h-8 text-xs font-mono"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-mono ${
+                                    item.confidence >= 90
+                                      ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                                      : 'border-amber-500/30 text-amber-700 dark:text-amber-400'
+                                  }`}
+                                >
+                                  {item.confidence.toFixed(0)}%
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                {isNeedsReview ? (
+                                  <div className="space-y-1">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Needs review
+                                    </span>
+                                    <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-ink-soft">
+                                      <input
+                                        type="checkbox"
+                                        checked={item.reviewedAcknowledged}
+                                        onChange={() => handleToggleItemReviewed(idx)}
+                                        className="rounded border-hairline"
+                                      />
+                                      <span>Verified</span>
+                                    </label>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Clean
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* SECTION 2: Prescribed Medications (Rx) */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-xs font-semibold text-ink px-1">
+                <span className="flex items-center gap-1.5">
+                  <Pill className="h-3.5 w-3.5 text-blue-600" />
+                  Prescribed Medications ({draft.medications?.length || 0})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAddEmptyMedication}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-moss-700 dark:text-moss-400 hover:underline"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Medication
+                </button>
+              </div>
+
+              {draft.medications && draft.medications.length > 0 ? (
+                <div className="rounded-xl border border-hairline overflow-hidden bg-card">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted text-ink-soft uppercase tracking-wider text-[10px]">
+                        <tr>
+                          <th className="p-3 w-10 text-center">Save</th>
+                          <th className="p-3">Medication Name / Salt</th>
+                          <th className="p-3 w-28">Dosage</th>
+                          <th className="p-3 w-36">Frequency</th>
+                          <th className="p-3 w-28">Duration</th>
+                          <th className="p-3 w-10 text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-hairline">
+                        {draft.medications.map((med, idx) => (
+                          <tr
+                            key={idx}
+                            className={`transition-colors ${
+                              med.included ? 'hover:bg-muted/30' : 'opacity-40 bg-muted/10'
+                            }`}
+                          >
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={med.included}
+                                onChange={() => handleToggleMedicationIncluded(idx)}
+                                className="h-3.5 w-3.5 rounded border-hairline text-moss-600 focus:ring-moss-500 cursor-pointer"
+                                title="Include this medication in record"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <Input
+                                type="text"
+                                value={med.name}
+                                onChange={(e) =>
+                                  handleMedicationFieldChange(idx, 'name', e.target.value)
+                                }
+                                placeholder="e.g. Tab. Metformin 500 mg"
+                                className="h-8 text-xs font-medium"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <Input
+                                type="text"
+                                value={med.dosage}
+                                onChange={(e) =>
+                                  handleMedicationFieldChange(idx, 'dosage', e.target.value)
+                                }
+                                placeholder="e.g. 500 mg"
+                                className="h-8 text-xs font-mono"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <Input
+                                type="text"
+                                value={med.frequency}
+                                onChange={(e) =>
+                                  handleMedicationFieldChange(idx, 'frequency', e.target.value)
+                                }
+                                placeholder="e.g. 1-0-1 (after food)"
+                                className="h-8 text-xs"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <Input
+                                type="text"
+                                value={med.duration}
+                                onChange={(e) =>
+                                  handleMedicationFieldChange(idx, 'duration', e.target.value)
+                                }
+                                placeholder="e.g. 30 days"
+                                className="h-8 text-xs"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMedication(idx)}
+                                className="p-1 text-ink-soft hover:text-destructive rounded transition-colors"
+                                title="Remove medication"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-dashed border-hairline text-center text-xs text-ink-soft bg-muted/10">
+                  No prescription medications detected in this document.{' '}
+                  <button
+                    type="button"
+                    onClick={handleAddEmptyMedication}
+                    className="text-moss-700 dark:text-moss-400 font-medium hover:underline inline-block"
+                  >
+                    Click to add medication manually
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Unmapped Rows (greyed out) */}
             {draft.unmapped_rows && draft.unmapped_rows.length > 0 && (
               <div className="space-y-1 p-3 bg-muted/20 border border-hairline rounded-xl text-xs opacity-60">
                 <span className="font-semibold text-ink-soft text-[11px] block">
-                  Unmapped Rows (Read-only, not savable):
+                  Other Unmapped Text (Read-only, not savable):
                 </span>
                 <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-ink-soft">
                   {draft.unmapped_rows.map((row, i) => (
                     <li key={i}>
-                      {row.raw_test_name || 'Unrecognized test'}: {row.raw_result} {row.raw_unit}
+                      {row.raw_test_name || 'Unrecognized row'}: {row.raw_result} {row.raw_unit}
                     </li>
                   ))}
                 </ul>
@@ -641,8 +882,8 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
                   required
                 />
                 <span className="text-xs text-ink leading-snug">
-                  I checked these values against my physical lab report. I understand these entries
-                  will be recorded as patient-confirmed preliminary observations.
+                  I checked these values against my physical lab report or prescription. I understand these entries
+                  will be recorded into my health wallet as patient-confirmed clinical records.
                 </span>
               </label>
             </div>
