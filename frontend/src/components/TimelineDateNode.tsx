@@ -38,10 +38,16 @@ export const TimelineDateNode: React.FC<TimelineDateNodeProps> = ({
           </h3>
         </div>
 
-        {/* Hospital names as small pills */}
-        {group.hospitalNames.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            {group.hospitalNames.map((hosp, i) => (
+        {/* Hospital names and Prescription ID pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          {rxId && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-moss-500/30 bg-moss-50 dark:bg-moss-950/40 px-3 py-1 text-xs text-moss-700 dark:text-moss-300 font-mono font-bold shadow-xs">
+              <span className="text-[10px] uppercase font-sans font-semibold text-ink-soft">Rx-ID:</span>
+              <span>{rxId}</span>
+            </span>
+          )}
+          {group.hospitalNames.length > 0 &&
+            group.hospitalNames.map((hosp, i) => (
               <span
                 key={i}
                 className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-paper-2 px-3 py-1 text-xs text-ink-soft"
@@ -50,15 +56,18 @@ export const TimelineDateNode: React.FC<TimelineDateNodeProps> = ({
                 <span>{hosp}</span>
               </span>
             ))}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Events inside this date node */}
       <div className="grid grid-cols-1 gap-4 pl-3 sm:pl-8">
         {rxId && <SavingsCard rxId={rxId} defaultExpanded={false} />}
         {group.events.map((event) => (
-          <EventCard key={event.id} event={event} onInspect={onInspect} />
+          <EventCard
+            key={event.id}
+            event={event.type === 'medication' && !event.rxId && rxId ? { ...event, rxId } : event}
+            onInspect={onInspect}
+          />
         ))}
       </div>
     </div>

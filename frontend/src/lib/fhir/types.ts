@@ -148,6 +148,7 @@ export interface FhirMedicationRequest extends FhirBaseResource {
   status?: string;
   intent?: string;
   identifier?: FhirIdentifier[];
+  groupIdentifier?: FhirIdentifier;
   medicationCodeableConcept?: FhirCodeableConcept;
   subject?: FhirReference;
   encounter?: FhirReference;

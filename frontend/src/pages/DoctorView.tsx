@@ -129,6 +129,15 @@ export const DoctorView: React.FC = () => {
 
       const data = await res.json();
       setCreatedRx(data);
+      try {
+        const cleanAbha = payload.abha_id.replace(/\D/g, '');
+        const key = `healthsafe_new_prescriptions_${cleanAbha}`;
+        const prev = JSON.parse(sessionStorage.getItem(key) || '[]');
+        sessionStorage.setItem(key, JSON.stringify([data, ...prev]));
+        window.dispatchEvent(new CustomEvent('healthsafe_rx_created', { detail: data }));
+      } catch {
+        // Safe fallback
+      }
     } catch (err: any) {
       alert(err.message || 'Error creating prescription');
     } finally {

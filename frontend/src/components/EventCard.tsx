@@ -7,6 +7,7 @@ import {
   ChevronRight,
   User,
   Clock,
+  FileText,
 } from 'lucide-react';
 import type { TimelineEvent } from '@/lib/fhir/types';
 import { RxBadge } from './RxBadge';
@@ -148,12 +149,20 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onInspect }) => {
         </div>
       </div>
 
-      {/* Inspect button indicator */}
-      <div className="hidden sm:flex items-center self-center shrink-0 pl-2">
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-soft opacity-0 group-hover:opacity-100 group-hover:text-moss-600 transition-all">
-          <span>Inspect</span>
-          <ChevronRight className="h-4 w-4" />
-        </span>
+      {/* Action button indicator: Read in Detail for prescriptions */}
+      <div className="flex sm:self-center shrink-0 pl-1 items-center">
+        {event.type === 'medication' ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-moss-600/10 text-moss-700 dark:text-moss-300 border border-moss-500/25 group-hover:bg-moss-600 group-hover:text-white transition-all shadow-xs">
+            <FileText className="h-3.5 w-3.5" />
+            <span>Read in Detail</span>
+            <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        ) : (
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-ink-soft opacity-0 group-hover:opacity-100 group-hover:text-moss-600 transition-all">
+            <span>View Details</span>
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        )}
       </div>
     </div>
   );

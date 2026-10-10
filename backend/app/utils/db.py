@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,30 @@ DEFAULT_DEMO_PATIENTS: list[dict[str, str]] = [
 _OFFLINE_SCAN_STORE: dict[str, list[dict[str, Any]]] = {}
 # In-memory store for newly created prescriptions in offline or test mode
 _OFFLINE_PRESCRIPTIONS: dict[str, dict[str, Any]] = {}
+_OFFLINE_PRESCRIPTION_STORE: dict[str, list[dict[str, Any]]] = {}
+_OFFLINE_PRESCRIPTION_LOOKUP: dict[str, tuple[dict[str, Any], list[dict[str, Any]]]] = {}
+
+DISPENSED_STORE_FILE = Path(__file__).resolve().parent.parent / "data" / "dispensed_prescriptions.json"
+_OFFLINE_DISPENSED_PRESCRIPTIONS: dict[str, dict[str, Any]] = {}
+
+def _load_dispensed_prescriptions() -> None:
+    global _OFFLINE_DISPENSED_PRESCRIPTIONS
+    try:
+        if DISPENSED_STORE_FILE.exists():
+            data = json.loads(DISPENSED_STORE_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                _OFFLINE_DISPENSED_PRESCRIPTIONS = data
+    except Exception:
+        pass
+
+def _save_dispensed_prescriptions() -> None:
+    try:
+        DISPENSED_STORE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        DISPENSED_STORE_FILE.write_text(json.dumps(_OFFLINE_DISPENSED_PRESCRIPTIONS, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+_load_dispensed_prescriptions()
 
 
 def _get_headers() -> dict[str, str]:
@@ -161,7 +186,40 @@ def get_clinical_resources_for_care_gaps(abha_id: str) -> list[dict[str, Any]]:
         except Exception:
             pass
 
-    # If DB query failed or empty, fallback to synthetic facts
+    # If DB query failed or empty, fallback to synthetic facts from bundle files
+    if not resources:
+        bundle_file_map = {
+            "91-2345-6789-0123": "priya-sharma.bundle.json",
+            "91-3456-7890-1234": "arun-patel.bundle.json",
+            "91-4567-8901-2345": "sunita-verma.bundle.json",
+            "91-5678-9012-3456": "vikram-malhotra.bundle.json",
+            "91-6789-0123-4567": "ananya-deshmukh.bundle.json",
+        }
+        if norm_abha in bundle_file_map:
+            bf_name = bundle_file_map[norm_abha]
+            base_dir = Path(__file__).resolve().parent.parent.parent.parent
+            bundle_p = base_dir / "frontend" / "src" / "data" / "patients" / bf_name
+            if bundle_p.exists():
+                try:
+                    b_data = json.loads(bundle_p.read_text(encoding="utf-8"))
+                    for entry in b_data.get("entry", []):
+                        res_obj = entry.get("resource", {})
+                        rtype = res_obj.get("resourceType")
+                        if rtype in ("Condition", "Observation"):
+                            resources.append({
+                                "id": res_obj.get("id"),
+                                "fhir_id": res_obj.get("id"),
+                                "resource_type": rtype,
+                                "summary_title": res_obj.get("code", {}).get("text") or "Clinical Record",
+                                "summary_value": f"{res_obj.get('valueQuantity', {}).get('value')} {res_obj.get('valueQuantity', {}).get('unit', '')}".strip() if "valueQuantity" in res_obj else res_obj.get("valueString"),
+                                "event_date": res_obj.get("effectiveDateTime") or res_obj.get("recordedDate") or res_obj.get("onsetDateTime"),
+                                "raw_json": res_obj,
+                                "source": "ingested",
+                            })
+                    log_access("care_gaps", norm_abha, True)
+                except Exception:
+                    pass
+
     if not resources and norm_abha == "91-1234-5678-9012":
         resources = [
             {
@@ -283,6 +341,10 @@ def get_prescription_medications(rx_id: str) -> tuple[dict[str, Any] | None, lis
     """Retrieve prescription details and associated MedicationRequests for demo patients."""
     norm_rx = normalize_rx_id(rx_id)
 
+    if norm_rx in _OFFLINE_PRESCRIPTION_LOOKUP:
+        log_access("savings", rx_id, True)
+        return _OFFLINE_PRESCRIPTION_LOOKUP[norm_rx]
+
     # Check newly created in-memory prescriptions
     for stored_id, data in _OFFLINE_PRESCRIPTIONS.items():
         if normalize_rx_id(stored_id) == norm_rx:
@@ -318,15 +380,15 @@ def get_prescription_medications(rx_id: str) -> tuple[dict[str, Any] | None, lis
         except Exception:
             pass
 
-    # In-memory fallback for APL-RR-1410-RAME
-    if norm_rx in ["APLRR1410RAME", "APL-RR-1410-RAME"]:
-        log_access("savings", "APL-RR-1410-RAME", True)
-        return (
+    # In-memory fallbacks for all demo patients
+    demo_rx_catalog: dict[str, tuple[dict[str, Any], list[dict[str, Any]]]] = {
+        "APLRR1410RAME": (
             {
                 "rx_id": "APL-RR-1410-RAME",
                 "hospital_name": "Apollo Hospital",
                 "doctor_name": "Dr. Rajesh Rao",
                 "issued_on": "2024-10-14",
+                "patients": {"name": "Ramesh Kumar", "abha_id": "91-1234-5678-9012", "is_demo": True},
             },
             [
                 {
@@ -348,7 +410,149 @@ def get_prescription_medications(rx_id: str) -> tuple[dict[str, Any] | None, lis
                     "summary_title": "Atorvastatin 20 mg tablet",
                 },
             ],
-        )
+        ),
+        "FRTSS1809PRIY": (
+            {
+                "rx_id": "FRT-SS-1809-PRIY",
+                "hospital_name": "Fortis Healthcare",
+                "doctor_name": "Dr. Sunita Sharma",
+                "issued_on": "2024-09-18",
+                "patients": {"name": "Priya Sharma", "abha_id": "91-2345-6789-0123", "is_demo": True},
+            },
+            [
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-priya-1",
+                        "medicationCodeableConcept": {"text": "Levothyroxine sodium 50 mcg oral tablet"},
+                        "dosageInstruction": [{"text": "50 mcg - Once daily before breakfast"}],
+                    },
+                    "summary_title": "Levothyroxine sodium 50 mcg oral tablet",
+                },
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-priya-2",
+                        "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
+                        "dosageInstruction": [{"text": "500 mg - Twice daily"}],
+                    },
+                    "summary_title": "Metformin 500 mg tablet",
+                },
+            ],
+        ),
+        "MNPAS0511ARUN": (
+            {
+                "rx_id": "MNP-AS-0511-ARUN",
+                "hospital_name": "Manipal Hospital",
+                "doctor_name": "Dr. Amit Sen",
+                "issued_on": "2024-11-05",
+                "patients": {"name": "Arun Patel", "abha_id": "91-3456-7890-1234", "is_demo": True},
+            },
+            [
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-arun-1",
+                        "medicationCodeableConcept": {"text": "Amlodipine 5 mg tablet"},
+                        "dosageInstruction": [{"text": "5 mg - Once daily"}],
+                    },
+                    "summary_title": "Amlodipine 5 mg tablet",
+                },
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-arun-2",
+                        "medicationCodeableConcept": {"text": "Atorvastatin 20 mg tablet"},
+                        "dosageInstruction": [{"text": "20 mg - At bedtime"}],
+                    },
+                    "summary_title": "Atorvastatin 20 mg tablet",
+                },
+            ],
+        ),
+        "MDCPN1208SUNI": (
+            {
+                "rx_id": "MDC-PN-1208-SUNI",
+                "hospital_name": "MedCare Clinic",
+                "doctor_name": "Dr. Priya Nair",
+                "issued_on": "2024-08-12",
+                "patients": {"name": "Sunita Verma", "abha_id": "91-4567-8901-2345", "is_demo": True},
+            },
+            [
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-sunita-1",
+                        "medicationCodeableConcept": {"text": "Budesonide 200 mcg inhaler"},
+                        "dosageInstruction": [{"text": "2 puffs twice daily"}],
+                    },
+                    "summary_title": "Budesonide 200 mcg inhaler",
+                },
+            ],
+        ),
+        "AMSRR2207VIKR": (
+            {
+                "rx_id": "AMS-RR-2207-VIKR",
+                "hospital_name": "AIIMS New Delhi",
+                "doctor_name": "Dr. Rajesh Rao",
+                "issued_on": "2024-07-22",
+                "patients": {"name": "Vikram Malhotra", "abha_id": "91-5678-9012-3456", "is_demo": True},
+            },
+            [
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-vikram-1",
+                        "medicationCodeableConcept": {"text": "Dapagliflozin 10 mg tablet"},
+                        "dosageInstruction": [{"text": "10 mg - Once daily"}],
+                    },
+                    "summary_title": "Dapagliflozin 10 mg tablet",
+                },
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-vikram-2",
+                        "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
+                        "dosageInstruction": [{"text": "500 mg - Twice daily"}],
+                    },
+                    "summary_title": "Metformin 500 mg tablet",
+                },
+            ],
+        ),
+        "APLRR1410ANAN": (
+            {
+                "rx_id": "APL-RR-1410-ANAN",
+                "hospital_name": "Apollo Hospital",
+                "doctor_name": "Dr. Rajesh Rao",
+                "issued_on": "2024-10-14",
+                "patients": {"name": "Ananya Deshmukh", "abha_id": "91-6789-0123-4567", "is_demo": True},
+            },
+            [
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-ananya-1",
+                        "medicationCodeableConcept": {"text": "Telmisartan 40 mg tablet"},
+                        "dosageInstruction": [{"text": "40 mg - Once daily"}],
+                    },
+                    "summary_title": "Telmisartan 40 mg tablet",
+                },
+                {
+                    "raw_json": {
+                        "resourceType": "MedicationRequest",
+                        "id": "med-ananya-2",
+                        "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
+                        "dosageInstruction": [{"text": "500 mg - Once daily"}],
+                    },
+                    "summary_title": "Metformin 500 mg tablet",
+                },
+            ],
+        ),
+    }
+
+    if norm_rx in demo_rx_catalog:
+        rx_item, meds_item = demo_rx_catalog[norm_rx]
+        log_access("savings", rx_item["rx_id"], True)
+        return rx_item, meds_item
 
     log_access("savings", rx_id, False)
     return None, []
@@ -519,6 +723,15 @@ def get_patient_bundle_from_db(abha_id: str) -> dict[str, Any] | None:
                             raw = r.get("raw_json")
                             if raw and isinstance(raw, dict):
                                 fid = r.get("fhir_id") or r.get("id")
+                                rx_token = r.get("speakable_rx_id")
+                                if rx_token:
+                                    if "identifier" not in raw or not raw["identifier"]:
+                                        raw["identifier"] = [
+                                            {"system": "https://abdm.gov.in/rx-token", "value": rx_token},
+                                            {"system": "https://phr-demo.example.org/rx-token", "value": rx_token},
+                                        ]
+                                    if "groupIdentifier" not in raw:
+                                        raw["groupIdentifier"] = {"value": rx_token}
                                 entries.append({
                                     "fullUrl": f"urn:uuid:{fid}",
                                     "resource": raw,
@@ -531,6 +744,15 @@ def get_patient_bundle_from_db(abha_id: str) -> dict[str, Any] | None:
                             entries.append({
                                 "fullUrl": f"urn:uuid:{fid}",
                                 "resource": scan_obs,
+                            })
+
+                    # Merge any in-memory confirmed prescriptions
+                    if norm_abha in _OFFLINE_PRESCRIPTION_STORE:
+                        for rx_res in _OFFLINE_PRESCRIPTION_STORE[norm_abha]:
+                            fid = rx_res.get("id", "rx-res")
+                            entries.append({
+                                "fullUrl": f"urn:uuid:{fid}",
+                                "resource": rx_res,
                             })
 
                     log_access("abha_timeline", norm_abha, True)
@@ -546,34 +768,46 @@ def get_patient_bundle_from_db(abha_id: str) -> dict[str, Any] | None:
     # In-memory demo bundle if DB unavailable
     if norm_abha == "91-1234-5678-9012":
         log_access("abha_timeline", norm_abha, True)
+        fallback_entries = [
+            {
+                "fullUrl": "urn:uuid:patient-ramesh",
+                "resource": {
+                    "resourceType": "Patient",
+                    "id": "patient-ramesh",
+                    "identifier": [{"system": "https://healthid.ndhm.gov.in", "value": "91-1234-5678-9012"}],
+                    "name": [{"text": "Ramesh Kumar"}],
+                    "gender": "male",
+                    "birthDate": "1970-05-15",
+                },
+            },
+            {
+                "fullUrl": "urn:uuid:med-1",
+                "resource": {
+                    "resourceType": "MedicationRequest",
+                    "id": "med-1",
+                    "status": "active",
+                    "authoredOn": "2024-10-14T09:00:00Z",
+                    "identifier": [
+                        {"system": "https://abdm.gov.in/rx-token", "value": "APL-RR-1410-RAME"},
+                        {"system": "https://phr-demo.example.org/rx-token", "value": "APL-RR-1410-RAME"},
+                    ],
+                    "groupIdentifier": {
+                        "value": "APL-RR-1410-RAME",
+                    },
+                    "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
+                    "dosageInstruction": [{"text": "500 mg - Once daily"}],
+                },
+            },
+        ]
+        if norm_abha in _OFFLINE_PRESCRIPTION_STORE:
+            for rx_res in _OFFLINE_PRESCRIPTION_STORE[norm_abha]:
+                fid = rx_res.get("id", "rx-res")
+                fallback_entries.append({"fullUrl": f"urn:uuid:{fid}", "resource": rx_res})
         return {
             "resourceType": "Bundle",
             "type": "collection",
-            "total": 4,
-            "entry": [
-                {
-                    "fullUrl": "urn:uuid:patient-ramesh",
-                    "resource": {
-                        "resourceType": "Patient",
-                        "id": "patient-ramesh",
-                        "identifier": [{"system": "https://healthid.ndhm.gov.in", "value": "91-1234-5678-9012"}],
-                        "name": [{"text": "Ramesh Kumar"}],
-                        "gender": "male",
-                        "birthDate": "1970-05-15",
-                    },
-                },
-                {
-                    "fullUrl": "urn:uuid:med-1",
-                    "resource": {
-                        "resourceType": "MedicationRequest",
-                        "id": "med-1",
-                        "status": "active",
-                        "authoredOn": "2024-10-14T09:00:00Z",
-                        "medicationCodeableConcept": {"text": "Metformin 500 mg tablet"},
-                        "dosageInstruction": [{"text": "500 mg - Once daily"}],
-                    },
-                },
-            ],
+            "total": len(fallback_entries),
+            "entry": fallback_entries,
         }
 
     return None
@@ -819,67 +1053,101 @@ def create_prescription_in_db(
     rx_id = f"RX-{p1}-{p2}"
     issued_on = datetime.now().strftime("%Y-%m-%d")
 
+    # 1. Build standardized FHIR MedicationRequest resources with speakable Rx identifier
+    created_meds: list[dict[str, Any]] = []
+    created_resources: list[dict[str, Any]] = []
+
+    for idx, med in enumerate(medications):
+        fid = f"med-req-{uuid.uuid4().hex[:8]}"
+        m_title = med.get("name", "Prescribed Medicine")
+        m_val = med.get("dosage", "1 tablet")
+        raw_json = {
+            "resourceType": "MedicationRequest",
+            "id": fid,
+            "status": "active",
+            "intent": "order",
+            "authoredOn": f"{issued_on}T10:00:00Z",
+            "subject": {"reference": f"Patient/{patient_id or 'demo'}", "display": patient_name},
+            "requester": {"display": doctor_name or "Dr. Rajesh Rao"},
+            "encounter": {"display": hospital_name or "Apollo Hospitals"},
+            "identifier": [
+                {"system": "https://abdm.gov.in/rx-token", "value": rx_id},
+                {"system": "https://phr-demo.example.org/rx-token", "value": rx_id},
+            ],
+            "groupIdentifier": {
+                "system": "https://abdm.gov.in/rx-token",
+                "value": rx_id,
+            },
+            "medicationCodeableConcept": {
+                "text": m_title,
+                "coding": [{"system": "http://snomed.info/sct", "display": m_title}],
+            },
+            "dosageInstruction": [
+                {
+                    "text": f"{m_val} - {med.get('frequency', 'Once daily')}. {med.get('instructions', '')}".strip(),
+                }
+            ],
+        }
+        med_row = {
+            "patient_id": patient_id,
+            "abha_id": norm_abha,
+            "resource_type": "MedicationRequest",
+            "fhir_id": fid,
+            "event_date": f"{issued_on}T10:00:00Z",
+            "speakable_rx_id": rx_id,
+            "summary_title": m_title,
+            "summary_value": m_val,
+            "raw_json": raw_json,
+        }
+        created_meds.append(med_row)
+        created_resources.append(raw_json)
+
+    cid = None
+    cond_raw = None
+    if diagnosis:
+        cid = f"cond-{uuid.uuid4().hex[:8]}"
+        cond_raw = {
+            "resourceType": "Condition",
+            "id": cid,
+            "code": {"text": diagnosis},
+            "recordedDate": f"{issued_on}T10:00:00Z",
+            "subject": {"reference": f"Patient/{patient_id or 'demo'}", "display": patient_name},
+        }
+        created_resources.append(cond_raw)
+
+    # Register in in-memory session stores for immediate querying & offline fallback
+    if norm_abha not in _OFFLINE_PRESCRIPTION_STORE:
+        _OFFLINE_PRESCRIPTION_STORE[norm_abha] = []
+    _OFFLINE_PRESCRIPTION_STORE[norm_abha].extend(created_resources)
+
+    p_payload = {
+        "rx_id": rx_id,
+        "patient_id": patient_id,
+        "abha_id": norm_abha,
+        "hospital_name": hospital_name or "Apollo Hospitals",
+        "doctor_name": doctor_name or "Dr. Rajesh Rao",
+        "issued_on": issued_on,
+        "patients": {"name": patient_name, "abha_id": norm_abha, "is_demo": True},
+    }
+    _OFFLINE_PRESCRIPTION_LOOKUP[normalize_rx_id(rx_id)] = (p_payload, created_meds)
+    _OFFLINE_PRESCRIPTIONS[rx_id] = {"rx": p_payload, "medications": created_meds}
+
     # If Supabase is connected, write row to prescriptions and fhir_resources
     if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and patient_id:
         try:
             with httpx.Client(timeout=5.0) as client:
-                # 1. Insert into prescriptions
-                p_payload = {
-                    "rx_id": rx_id,
-                    "patient_id": patient_id,
-                    "abha_id": norm_abha,
-                    "hospital_name": hospital_name or "Apollo Hospitals",
-                    "doctor_name": doctor_name or "Dr. Rajesh Rao",
-                    "issued_on": issued_on,
-                }
                 client.post(
                     f"{SUPABASE_URL}/rest/v1/prescriptions",
                     headers=_get_headers(),
                     json=p_payload,
                 )
-
-                # 2. Insert MedicationRequests
-                for idx, med in enumerate(medications):
-                    fid = f"med-req-{uuid.uuid4().hex[:8]}"
-                    m_title = med.get("name", "Prescribed Medicine")
-                    m_val = med.get("dosage", "1 tablet")
-                    raw_json = {
-                        "resourceType": "MedicationRequest",
-                        "id": fid,
-                        "status": "active",
-                        "intent": "order",
-                        "authoredOn": f"{issued_on}T10:00:00Z",
-                        "subject": {"reference": f"Patient/{patient_id}", "display": patient_name},
-                        "requester": {"display": doctor_name},
-                        "medicationCodeableConcept": {
-                            "text": m_title,
-                            "coding": [{"system": "http://snomed.info/sct", "display": m_title}],
-                        },
-                        "dosageInstruction": [
-                            {
-                                "text": f"{m_val} - {med.get('frequency', 'Once daily')}. {med.get('instructions', '')}",
-                            }
-                        ],
-                    }
+                for med_row in created_meds:
                     client.post(
                         f"{SUPABASE_URL}/rest/v1/fhir_resources",
                         headers=_get_headers(),
-                        json={
-                            "patient_id": patient_id,
-                            "abha_id": norm_abha,
-                            "resource_type": "MedicationRequest",
-                            "fhir_id": fid,
-                            "event_date": f"{issued_on}T10:00:00Z",
-                            "speakable_rx_id": rx_id,
-                            "summary_title": m_title,
-                            "summary_value": m_val,
-                            "raw_json": raw_json,
-                        },
+                        json=med_row,
                     )
-
-                # If diagnosis provided, record Condition
-                if diagnosis:
-                    cid = f"cond-{uuid.uuid4().hex[:8]}"
+                if diagnosis and cid and cond_raw:
                     client.post(
                         f"{SUPABASE_URL}/rest/v1/fhir_resources",
                         headers=_get_headers(),
@@ -890,12 +1158,7 @@ def create_prescription_in_db(
                             "fhir_id": cid,
                             "event_date": f"{issued_on}T10:00:00Z",
                             "summary_title": diagnosis,
-                            "raw_json": {
-                                "resourceType": "Condition",
-                                "id": cid,
-                                "code": {"text": diagnosis},
-                                "recordedDate": f"{issued_on}T10:00:00Z",
-                            },
+                            "raw_json": cond_raw,
                         },
                     )
                 log_access("create_prescription", rx_id, True)
@@ -1026,10 +1289,165 @@ def get_patient_details_for_doctor(abha_id: str) -> dict[str, Any] | None:
             "phone": "+91 98765 43210",
         }
 
+    # Merge any in-memory issued prescriptions for this patient
+    if norm_abha in _OFFLINE_PRESCRIPTION_STORE:
+        for p_info, _ in _OFFLINE_PRESCRIPTION_LOOKUP.values():
+            if p_info.get("abha_id") == norm_abha:
+                if not any(p.get("rx_id") == p_info.get("rx_id") for p in prescriptions):
+                    prescriptions.insert(0, p_info)
+
     return {
         "patient": patient_record,
         "conditions": conditions,
         "observations": observations,
         "prescriptions": prescriptions,
     }
+
+
+def is_prescription_dispensed(rx_id: str) -> tuple[bool, str | None]:
+    """Check if prescription has been marked as dispensed (memory, disk cache, or Supabase)."""
+    norm_rx = normalize_rx_id(rx_id)
+    if norm_rx in _OFFLINE_DISPENSED_PRESCRIPTIONS:
+        info = _OFFLINE_DISPENSED_PRESCRIPTIONS[norm_rx]
+        if info.get("dispensed"):
+            return True, info.get("dispensed_at")
+
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                res = client.get(
+                    f"{SUPABASE_URL}/rest/v1/fhir_resources?resource_type=eq.MedicationDispense&fhir_id=eq.dispense-{norm_rx}&select=id,event_date,raw_json",
+                    headers=_get_headers(),
+                )
+                if res.status_code == 200:
+                    rows = res.json()
+                    if rows:
+                        event_date = rows[0].get("event_date") or datetime.now(timezone.utc).isoformat()
+                        _OFFLINE_DISPENSED_PRESCRIPTIONS[norm_rx] = {
+                            "rx_id": rx_id,
+                            "dispensed": True,
+                            "dispensed_at": event_date,
+                        }
+                        _save_dispensed_prescriptions()
+                        return True, event_date
+        except Exception:
+            pass
+
+    return False, None
+
+
+def mark_prescription_dispensed(
+    rx_id: str,
+    dispensed: bool = True,
+    pharmacist_name: str | None = None,
+    notes: str | None = None,
+) -> dict[str, Any]:
+    """Mark a prescription as dispensed (or un-dispensed) and persist to Supabase & disk."""
+    norm_rx = normalize_rx_id(rx_id)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    pharmacist = pharmacist_name or "Apollo Jan Aushadhi Pharmacy"
+    note_text = notes or "Dispensed PMBJP Jan Aushadhi generic bioequivalent substitutes"
+
+    # 1. Update in-memory & disk persistence
+    dispense_record = {
+        "rx_id": rx_id,
+        "norm_rx": norm_rx,
+        "dispensed": dispensed,
+        "dispensed_at": now_iso if dispensed else None,
+        "pharmacist_name": pharmacist,
+        "notes": note_text,
+    }
+    _OFFLINE_DISPENSED_PRESCRIPTIONS[norm_rx] = dispense_record
+    _save_dispensed_prescriptions()
+
+    # 2. Persist to Supabase if available
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        try:
+            # Resolve patient info for this prescription
+            rx_record, _ = get_prescription_medications(rx_id)
+            patient_id = None
+            abha_id = None
+            if rx_record:
+                abha_id = rx_record.get("abha_id") or rx_record.get("patients", {}).get("abha_id")
+                patient_id = rx_record.get("patient_id")
+
+            with httpx.Client(timeout=4.0) as client:
+                # If patient_id is not yet resolved, query patients table
+                if not patient_id and abha_id:
+                    p_res = client.get(
+                        f"{SUPABASE_URL}/rest/v1/patients?abha_id=eq.{abha_id}&select=id",
+                        headers=_get_headers(),
+                    )
+                    if p_res.status_code == 200 and p_res.json():
+                        patient_id = p_res.json()[0]["id"]
+
+                # If still not found, fallback to first demo patient
+                if not patient_id:
+                    all_p = client.get(
+                        f"{SUPABASE_URL}/rest/v1/patients?select=id,abha_id&limit=1",
+                        headers=_get_headers(),
+                    )
+                    if all_p.status_code == 200 and all_p.json():
+                        patient_id = all_p.json()[0]["id"]
+                        if not abha_id:
+                            abha_id = all_p.json()[0]["abha_id"]
+
+                fhir_id = f"dispense-{norm_rx}"
+
+                if dispensed:
+                    # Check if already exists in fhir_resources
+                    exist_res = client.get(
+                        f"{SUPABASE_URL}/rest/v1/fhir_resources?resource_type=eq.MedicationDispense&fhir_id=eq.{fhir_id}&select=id",
+                        headers=_get_headers(),
+                    )
+                    payload = {
+                        "patient_id": patient_id,
+                        "abha_id": abha_id or "91-1234-5678-9012",
+                        "resource_type": "MedicationDispense",
+                        "fhir_id": fhir_id,
+                        "event_date": now_iso,
+                        "summary_title": f"Jan Aushadhi Generic Dispense ({rx_id})",
+                        "summary_value": "Dispensed to Patient",
+                        "source": "ingested",
+                        "raw_json": {
+                            "resourceType": "MedicationDispense",
+                            "status": "completed",
+                            "rx_id": rx_id,
+                            "whenHandedOver": now_iso,
+                            "performer": [{"actor": {"display": pharmacist}}],
+                            "note": [{"text": note_text}],
+                        },
+                    }
+                    if exist_res.status_code == 200 and exist_res.json():
+                        row_id = exist_res.json()[0]["id"]
+                        client.patch(
+                            f"{SUPABASE_URL}/rest/v1/fhir_resources?id=eq.{row_id}",
+                            headers=_get_headers(),
+                            json=payload,
+                        )
+                    else:
+                        client.post(
+                            f"{SUPABASE_URL}/rest/v1/fhir_resources",
+                            headers=_get_headers(),
+                            json=payload,
+                        )
+                    log_access("savings", f"dispense:{norm_rx}", True)
+                else:
+                    # If undispensing, delete from fhir_resources
+                    client.delete(
+                        f"{SUPABASE_URL}/rest/v1/fhir_resources?resource_type=eq.MedicationDispense&fhir_id=eq.{fhir_id}",
+                        headers=_get_headers(),
+                    )
+        except Exception:
+            pass
+
+    return {
+        "status": "success",
+        "rx_id": rx_id,
+        "dispensed": dispensed,
+        "dispensed_at": now_iso if dispensed else None,
+        "pharmacist_name": pharmacist,
+        "message": f"Prescription {rx_id} successfully marked as {'dispensed' if dispensed else 'undispensed'} in database",
+    }
+
 

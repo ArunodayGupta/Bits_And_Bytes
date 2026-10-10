@@ -22,7 +22,8 @@ SAMPLE_REPORT_PNG = Path(__file__).resolve().parent.parent / "frontend" / "publi
 
 
 @pytest.fixture(autouse=True)
-def clean_demo_state():
+def clean_demo_state(monkeypatch):
+    monkeypatch.setenv("OCR_PROVIDER", "mock")
     reset_demo_scanned_resources("91-1234-5678-9012")
     yield
     reset_demo_scanned_resources("91-1234-5678-9012")

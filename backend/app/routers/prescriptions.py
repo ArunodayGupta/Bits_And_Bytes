@@ -14,6 +14,8 @@ from app.utils.db import (
     create_prescription_in_db,
     get_prescription_medications,
     is_demo_patient,
+    is_prescription_dispensed,
+    mark_prescription_dispensed,
 )
 
 router = APIRouter(prefix="/api/prescription", tags=["Prescriptions"])
@@ -85,6 +87,8 @@ def get_prescription_details(rx_id: str):
             "raw": raw,
         })
 
+    is_disp, disp_at = is_prescription_dispensed(rx_id)
+
     return {
         "rx_id": rx.get("rx_id"),
         "hospital_name": rx.get("hospital_name", "Medical Centre"),
@@ -92,6 +96,8 @@ def get_prescription_details(rx_id: str):
         "issued_on": rx.get("issued_on"),
         "patient": rx.get("patients") or {"abha_id": rx.get("abha_id"), "name": rx.get("patient_name")},
         "medications": med_list,
+        "dispensed": is_disp,
+        "dispensed_at": disp_at,
     }
 
 
@@ -105,6 +111,60 @@ def get_prescription_savings(rx_id: str):
             detail={"error": {"code": "PRESCRIPTION_NOT_FOUND", "message": "Prescription not found or not a demo record"}},
         )
 
-    savings_response = compute_savings_for_prescription(rx_id=rx["rx_id"], medication_requests=medications)
+    is_disp, disp_at = is_prescription_dispensed(rx_id)
+    savings_response = compute_savings_for_prescription(
+        rx_id=rx["rx_id"],
+        medication_requests=medications,
+        dispensed=is_disp,
+        dispensed_at=disp_at,
+    )
     return savings_response
+
+
+class DispensePayload(BaseModel):
+    dispensed: bool = True
+    pharmacist_name: str | None = "Apollo Jan Aushadhi Pharmacy"
+    notes: str | None = None
+
+
+@router.post("/{rx_id}/dispense")
+def dispense_prescription(rx_id: str, payload: DispensePayload | None = None):
+    """Physician/Pharmacist endpoint: Mark a prescription as dispensed in the database (persisting to Supabase & disk)."""
+    rx, _ = get_prescription_medications(rx_id)
+    if not rx:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"code": "PRESCRIPTION_NOT_FOUND", "message": "Prescription not found or not a demo record"}},
+        )
+
+    dispensed_state = payload.dispensed if payload else True
+    pharmacist = payload.pharmacist_name if (payload and payload.pharmacist_name) else "Apollo Jan Aushadhi Pharmacy"
+    notes = payload.notes if payload else None
+
+    result = mark_prescription_dispensed(
+        rx_id=rx["rx_id"],
+        dispensed=dispensed_state,
+        pharmacist_name=pharmacist,
+        notes=notes,
+    )
+    return result
+
+
+@router.get("/{rx_id}/dispense")
+def get_dispense_status(rx_id: str):
+    """Physician/Pharmacist endpoint: Retrieve prescription dispensing status."""
+    rx, _ = get_prescription_medications(rx_id)
+    if not rx:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"code": "PRESCRIPTION_NOT_FOUND", "message": "Prescription not found or not a demo record"}},
+        )
+
+    is_disp, disp_at = is_prescription_dispensed(rx_id)
+    return {
+        "rx_id": rx["rx_id"],
+        "dispensed": is_disp,
+        "dispensed_at": disp_at,
+    }
+
 
