@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.database import get_supabase
+from app.utils.db import get_supabase
 from app.models import HealthResponse
 
 router = APIRouter(tags=["Health"])

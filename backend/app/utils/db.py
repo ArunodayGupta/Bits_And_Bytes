@@ -19,11 +19,19 @@ from typing import Any
 
 import httpx
 from dotenv import load_dotenv
+from supabase import Client, create_client
+
+from app.config import settings
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = settings.supabase_url or os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = settings.supabase_service_role_key or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+
+def get_supabase() -> Client:
+    """Uses the service role key to bypass RLS for demo purposes."""
+    return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or "")
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent / "backend" / "fixtures"
 
