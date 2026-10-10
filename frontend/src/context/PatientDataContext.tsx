@@ -88,6 +88,49 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
         }
       }
 
+      // Merge any newly issued prescriptions for this patient in current session
+      try {
+        const cleanAbha = profile.abha.replace(/\D/g, '');
+        const storedPrescriptions = sessionStorage.getItem(`healthsafe_new_prescriptions_${cleanAbha}`);
+        if (storedPrescriptions) {
+          const list = JSON.parse(storedPrescriptions);
+          for (const rx of list) {
+            for (const med of rx.medications || []) {
+              const fid = `rx-sess-${rx.rx_id}-${(med.name || 'med').replace(/\s+/g, '-').toLowerCase()}`;
+              if (!currentEntryIds.has(fid)) {
+                preparedBundle.entry.unshift({
+                  fullUrl: `urn:uuid:${fid}`,
+                  resource: {
+                    resourceType: 'MedicationRequest',
+                    id: fid,
+                    status: 'active',
+                    authoredOn: rx.issued_on ? `${rx.issued_on}T10:00:00Z` : new Date().toISOString(),
+                    requester: { display: rx.doctor_name || 'Dr. Rajesh Rao' },
+                    encounter: { display: rx.hospital_name || 'Apollo Hospitals' },
+                    identifier: [
+                      { system: 'https://abdm.gov.in/rx-token', value: rx.rx_id },
+                      { system: 'https://phr-demo.example.org/rx-token', value: rx.rx_id },
+                    ],
+                    groupIdentifier: {
+                      system: 'https://abdm.gov.in/rx-token',
+                      value: rx.rx_id,
+                    },
+                    medicationCodeableConcept: {
+                      text: med.name,
+                      coding: [{ system: 'http://snomed.info/sct', display: med.name }],
+                    },
+                    dosageInstruction: [{ text: `${med.dosage || '1 tablet'} - ${med.frequency || 'Once daily'}. ${med.instructions || ''}`.trim() }],
+                  } as any,
+                });
+                currentEntryIds.add(fid);
+              }
+            }
+          }
+        }
+      } catch {
+        // Safe fallback
+      }
+
       setRawBundle(fetchedBundle);
       setBundle(preparedBundle);
 
@@ -134,6 +177,15 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
   // Load from database on initial mount
   React.useEffect(() => {
     void loadData('database');
+  }, [loadData]);
+
+  // Immediately reload whenever a doctor issues a new prescription
+  React.useEffect(() => {
+    const handleRxCreated = () => {
+      void loadData('database');
+    };
+    window.addEventListener('healthsafe_rx_created', handleRxCreated);
+    return () => window.removeEventListener('healthsafe_rx_created', handleRxCreated);
   }, [loadData]);
 
   // Silent background refresh every 60s when in database mode.

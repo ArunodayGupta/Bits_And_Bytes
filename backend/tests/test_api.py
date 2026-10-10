@@ -50,3 +50,29 @@ def test_admin_metrics():
     assert res.status_code == 200
     data = res.json()
     assert "total_patients" in data
+
+
+def test_dispense_prescription_endpoint():
+    # 1. Mark as dispensed
+    post_res = client.post(
+        "/api/prescription/APL-RR-1410-RAME/dispense",
+        json={"dispensed": True, "pharmacist_name": "Test Pharmacy"},
+    )
+    assert post_res.status_code == 200
+    assert post_res.json()["dispensed"] is True
+
+    # 2. Verify status endpoint
+    status_res = client.get("/api/prescription/APL-RR-1410-RAME/dispense")
+    assert status_res.status_code == 200
+    assert status_res.json()["dispensed"] is True
+
+    # 3. Verify prescription details endpoint reflects dispensed
+    det_res = client.get("/api/prescription/APL-RR-1410-RAME")
+    assert det_res.status_code == 200
+    assert det_res.json()["dispensed"] is True
+
+    # 4. Verify savings endpoint reflects dispensed
+    sav_res = client.get("/api/prescription/APL-RR-1410-RAME/savings")
+    assert sav_res.status_code == 200
+    assert sav_res.json()["dispensed"] is True
+

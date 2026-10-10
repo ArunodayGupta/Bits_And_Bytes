@@ -177,11 +177,22 @@ export function parseMedicationRequestEvent(
     hospital = encounterHospitalMap.get(med.encounter.reference);
   }
 
-  // Extract injected speakable Rx-ID if present
+  // Extract injected speakable Rx-ID defensively
   const rxTokenIdentifier = med.identifier?.find(
-    (id) => id.system === 'https://abdm.gov.in/rx-token'
+    (id) =>
+      id.system === 'https://abdm.gov.in/rx-token' ||
+      id.system === 'https://phr-demo.example.org/rx-token' ||
+      id.system?.toLowerCase().includes('prescription') ||
+      id.system?.toLowerCase().includes('rx') ||
+      (typeof id.value === 'string' &&
+        (id.value.startsWith('APL-') || id.value.startsWith('RX-') || id.value.startsWith('HS-')))
   );
-  const rxId = rxTokenIdentifier?.value;
+  const rxId =
+    rxTokenIdentifier?.value ||
+    med.groupIdentifier?.value ||
+    (med as any).speakable_rx_id ||
+    (med as any).rx_id ||
+    (med.identifier?.[0]?.value && med.identifier[0].value.includes('-') ? med.identifier[0].value : undefined);
 
   return {
     id: med.id || `med-${Math.random()}`,
@@ -279,10 +290,23 @@ export function buildTimeline(bundle: FhirBundle): TimelineDateGroup[] {
       return pA - pB;
     });
 
-    // Gather distinct hospital names
+    // Gather distinct hospital names and propagate rxId if present for same-day medications
     const hospitalSet = new Set<string>();
+    let groupRxId: string | undefined;
     for (const ev of events) {
       if (ev.hospital) hospitalSet.add(ev.hospital);
+      if (ev.type === 'medication' && ev.rxId && !groupRxId) {
+        groupRxId = ev.rxId;
+      }
+    }
+
+    if (groupRxId) {
+      for (const ev of events) {
+        if (ev.type === 'medication' && !ev.rxId) {
+          ev.rxId = groupRxId;
+          ev.badge = `Rx: ${groupRxId}`;
+        }
+      }
     }
 
     dateGroups.push({

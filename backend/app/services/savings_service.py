@@ -68,6 +68,8 @@ class PrescriptionSavingsResponse(BaseModel):
     disclaimer: str = (
         "Illustrative prices. Do not change medicines without asking your doctor or pharmacist."
     )
+    dispensed: bool = False
+    dispensed_at: str | None = None
 
 
 # In-memory validated catalog loaded at startup
@@ -232,6 +234,8 @@ def compute_savings_for_prescription(
     rx_id: str,
     medication_requests: list[dict[str, Any]],
     catalog: list[CatalogEntry] | None = None,
+    dispensed: bool = False,
+    dispensed_at: str | None = None,
 ) -> PrescriptionSavingsResponse:
     """Calculate potential generic savings for a prescription using Decimal math.
 
@@ -323,4 +327,6 @@ def compute_savings_for_prescription(
         medications=matched_results,
         unmatched=unmatched_results,
         total_monthly_savings=total_monthly_savings.quantize(Decimal("0.01")),
+        dispensed=dispensed,
+        dispensed_at=dispensed_at,
     )
