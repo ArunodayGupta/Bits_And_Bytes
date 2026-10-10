@@ -90,7 +90,7 @@ def get_prescription_details(rx_id: str):
         "hospital_name": rx.get("hospital_name", "Medical Centre"),
         "doctor_name": rx.get("doctor_name", "Treating Physician"),
         "issued_on": rx.get("issued_on"),
-        "patient": rx.get("patients"),
+        "patient": rx.get("patients") or {"abha_id": rx.get("abha_id"), "name": rx.get("patient_name")},
         "medications": med_list,
     }
 

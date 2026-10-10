@@ -36,7 +36,7 @@ export const Timeline: React.FC = () => {
     { id: 'encounter', label: 'Encounters', icon: Building2 },
   ];
 
-  if (isLoading) {
+  if (isLoading && timelineGroups.length === 0) {
     return (
       <div className="flex flex-col gap-8 max-w-4xl mx-auto py-8">
         <div className="flex flex-wrap gap-4 items-center justify-between">

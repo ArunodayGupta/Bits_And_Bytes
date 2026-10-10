@@ -164,8 +164,8 @@ export const DoctorView: React.FC = () => {
 
       // Determine the ABHA to query
       let targetAbha = cleanQuery;
-      if (rxData?.patient?.abha_id) {
-        targetAbha = rxData.patient.abha_id;
+      if (rxData?.patient?.abha_id || rxData?.abha_id) {
+        targetAbha = rxData?.patient?.abha_id || rxData?.abha_id;
       } else if (cleanQuery.toUpperCase().includes('APLRR1410RAME') || cleanQuery.toUpperCase().includes('APL-RR-1410-RAME')) {
         targetAbha = '91-1234-5678-9012'; // Ramesh Kumar
       } else if (cleanQuery.toLowerCase() === 'ramesh kumar' || cleanQuery.toLowerCase() === 'ramesh-kumar') {
@@ -581,7 +581,7 @@ export const DoctorView: React.FC = () => {
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft" />
                 <Input
                   type="text"
-                  placeholder="Enter Prescription Code (e.g. APL-RR-1410-RAME) or Patient ABHA ID..."
+                  placeholder="Enter Prescription Code (e.g. RX-7K9M-4W2P or APL-RR-1410-RAME) or Patient ABHA ID..."
                   value={lookupAbha}
                   onChange={(e) => setLookupAbha(e.target.value)}
                   onKeyDown={(e) => {

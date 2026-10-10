@@ -41,8 +41,10 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
   const clearToast = useCallback(() => setToastMessage(null), []);
 
-  const loadData = useCallback(async (requestedSource: DataSourceType, patientId?: string) => {
-    setIsLoading(true);
+  const loadData = useCallback(async (requestedSource: DataSourceType, patientId?: string, silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
     let didFallback = false;
     const targetPatientId = patientId ?? currentPatientId;
     const profile = PATIENT_PROFILES.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
@@ -84,26 +86,16 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     void loadData('database');
   }, [loadData]);
 
-  // Auto-refresh when in database mode so timeline stays in sync with live DB updates
+  // Auto-refresh periodically without flashing or emptying the UI
   React.useEffect(() => {
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        void loadData(source);
+        void loadData(source, undefined, true);
       }
-    }, 20000);
-
-    const onFocus = () => {
-      void loadData(source);
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', onFocus);
-    }
+    }, 30000);
 
     return () => {
       clearInterval(interval);
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', onFocus);
-      }
     };
   }, [source, loadData]);
 

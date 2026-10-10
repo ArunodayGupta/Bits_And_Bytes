@@ -63,9 +63,9 @@ describe('Clinical Views Rendering & Flow Integrity', () => {
     );
 
     expect(screen.getByText(/Clinical history/i)).toBeTruthy();
-    expect(screen.getByText(/Encounters/i)).toBeTruthy();
-    expect(screen.getByText(/Active conditions/i)).toBeTruthy();
-    expect(screen.getByText(/Medications/i)).toBeTruthy();
+    expect(screen.getAllByText(/Encounters/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Active conditions/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Medications/i).length).toBeGreaterThan(0);
   });
 
   it('renders PhysicianView with backend savings response shape without throwing', async () => {
