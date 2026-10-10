@@ -8,6 +8,8 @@ Verified against loinc.org and UCUM standards.
 
 from __future__ import annotations
 
+import re
+from typing import Any
 from pydantic import BaseModel
 
 
@@ -36,6 +38,9 @@ LAB_CATALOG: dict[str, LabCatalogEntry] = {
             "glycated hb",
             "a1c",
             "hb a1c",
+            "hemoglobin a1c",
+            "hba1-c",
+            "hb-a1c",
         ],
         allowed_units=["%"],
         ucum_map={"%": "%"},
@@ -55,6 +60,9 @@ LAB_CATALOG: dict[str, LabCatalogEntry] = {
             "fasting plasma glucose",
             "fpg",
             "glucose fasting",
+            "blood glucose fasting",
+            "fbg",
+            "fasting glucose",
         ],
         allowed_units=["mg/dL", "mg/dl"],
         ucum_map={"mg/dL": "mg/dL", "mg/dl": "mg/dL"},
@@ -73,6 +81,9 @@ LAB_CATALOG: dict[str, LabCatalogEntry] = {
             "thyrotropin",
             "ultra tsh",
             "tsh ultrasensitive",
+            "s. tsh",
+            "serum tsh",
+            "tsh (ultra)",
         ],
         allowed_units=["m[IU]/L", "u[IU]/mL", "uIU/mL", "mIU/L", "µIU/mL", "uIU/ml", "mIU/l"],
         ucum_map={
@@ -98,6 +109,7 @@ LAB_CATALOG: dict[str, LabCatalogEntry] = {
             "creatinine",
             "s. creatinine",
             "creatinine serum",
+            "s creatinine",
         ],
         allowed_units=["mg/dL", "mg/dl"],
         ucum_map={"mg/dL": "mg/dL", "mg/dl": "mg/dL"},
@@ -127,18 +139,41 @@ LAB_CATALOG: dict[str, LabCatalogEntry] = {
 
 
 def find_lab_entry_by_alias(text: str) -> LabCatalogEntry | None:
-    """Match test name against aliases (case-insensitive substring/equality)."""
+    """Match test name against aliases safely with word boundary checks.
+    
+    Guards against prescription table noise (e.g. '1', 'Tab. Metformin', 'Dose')
+    and strictly forbids matching arbitrary sub-fragments of aliases.
+    """
+    if not text:
+        return None
     norm = text.lower().strip()
+    if len(norm) < 2:
+        return None
+
+    # Discard purely numeric, punctuation or symbol-only strings (e.g. "1", "2", "#", "-")
+    if re.match(r"^[\d\W_]+$", norm):
+        return None
+
+    # Discard prescription metadata and medication names
+    med_prefixes = (
+        "tab.", "tab ", "tablet", "cap.", "cap ", "capsule",
+        "syp.", "syrup", "inj.", "injection", "oint.", "ointment",
+        "rx", "medicine", "dose", "frequency", "duration", "qty",
+    )
+    if any(norm.startswith(p) for p in med_prefixes):
+        return None
+
     # 1. Exact match on alias
     for entry in LAB_CATALOG.values():
         for alias in entry.aliases:
             if norm == alias:
                 return entry
 
-    # 2. Substring match on alias
+    # 2. Whole-word / phrase regex match on alias
     for entry in LAB_CATALOG.values():
         for alias in entry.aliases:
-            if alias in norm or norm in alias:
+            pattern = rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])"
+            if re.search(pattern, norm):
                 return entry
 
     return None

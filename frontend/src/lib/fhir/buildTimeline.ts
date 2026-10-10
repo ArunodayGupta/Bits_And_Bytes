@@ -194,6 +194,9 @@ export function parseMedicationRequestEvent(
     (med as any).rx_id ||
     (med.identifier?.[0]?.value && med.identifier[0].value.includes('-') ? med.identifier[0].value : undefined);
 
+  const isOcrScan = (med as any).source === 'ocr_scan' || 
+    ((med.meta as any)?.tag as Array<{ code?: string }> | undefined)?.some((t) => t.code === 'ocr-scan');
+
   return {
     id: med.id || `med-${Math.random()}`,
     type: 'medication',
@@ -205,6 +208,7 @@ export function parseMedicationRequestEvent(
     doctor,
     rxId,
     badge: rxId ? `Rx: ${rxId}` : undefined,
+    source: isOcrScan ? 'ocr_scan' : 'ingested',
     resource: med,
   };
 }

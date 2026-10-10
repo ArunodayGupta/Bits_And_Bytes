@@ -166,10 +166,27 @@ html.dark .glass-card,
 
 /* Dark glass panel for Inspector and digital prescription */
 .dark-glass-panel {
-  background: rgba(18, 24, 20, 0.94);
+  --paper: #141915;
+  --paper-2: #1B221C;
+  --card: #202820;
+  --ink: #F1EDE0;
+  --ink-soft: #AAB5A6;
+  --hairline: rgba(227, 220, 203, 0.15);
+  --moss-600: #9DBB78;
+  --moss-500: #89A968;
+  --moss-100: #1E2B1E;
+  --teal-700: #5FB3AA;
+  --gold-400: #E0B95C;
+  background: rgba(18, 24, 20, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(227, 220, 203, 0.15);
+  color: #F1EDE0;
+}
+
+/* Safeguard: ensure text-paper always resolves to high-contrast warm white in dark contexts */
+.dark-glass-panel .text-paper,
+.dark .text-paper {
   color: #F1EDE0;
 }
 

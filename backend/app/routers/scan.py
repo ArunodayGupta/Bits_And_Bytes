@@ -24,6 +24,7 @@ from app.services.ocr_service import (
     ConfirmReportResponse,
     ScanDraft,
     build_fhir_observation,
+    build_fhir_medication_request,
     get_ocr_provider,
     parse_ocr_document_to_draft,
 )
@@ -176,16 +177,17 @@ def confirm_scanned_report(payload: ConfirmReportInput):
             detail={"error": {"code": "INVALID_DATE", "message": "Effective date must be valid ISO date format."}},
         )
 
-    if not payload.items:
+    if not payload.items and not payload.medications:
         raise HTTPException(
             status_code=400,
-            detail={"error": {"code": "EMPTY_ITEMS", "message": "At least one lab test item must be confirmed."}},
+            detail={"error": {"code": "EMPTY_ITEMS", "message": "At least one lab test item or medication must be confirmed."}},
         )
 
     created_resources = []
     created_count = 0
     already_existed_count = 0
 
+    # 1. Process diagnostic lab items
     for item in payload.items:
         lab_entry = LAB_CATALOG.get(item.test_key)
         if not lab_entry:
@@ -225,6 +227,27 @@ def confirm_scanned_report(payload: ConfirmReportInput):
         else:
             created_count += 1
         created_resources.append(obs_fhir)
+
+    # 2. Process prescribed medications
+    for med in payload.medications:
+        if not med.name.strip():
+            continue
+
+        med_fhir = build_fhir_medication_request(
+            abha_id=norm_abha,
+            name=med.name.strip(),
+            dosage=med.dosage,
+            frequency=med.frequency,
+            duration=med.duration,
+            authored_on=payload.effective_date,
+        )
+
+        success, already_existed = save_confirmed_observation(norm_abha, med_fhir)
+        if already_existed:
+            already_existed_count += 1
+        else:
+            created_count += 1
+        created_resources.append(med_fhir)
 
     return ConfirmReportResponse(
         success=True,

@@ -124,10 +124,10 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
 
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <SheetTitle className="text-2xl sm:text-3xl text-paper font-serif font-normal">
+                  <SheetTitle className="text-2xl sm:text-3xl text-stone-100 font-serif font-normal">
                     {drugName}
                   </SheetTitle>
-                  <SheetDescription className="text-xs text-stone-400 mt-1">
+                  <SheetDescription className="text-xs text-stone-300 mt-1">
                     Official digital prescription record issued by licensed medical practitioner.
                   </SheetDescription>
                 </div>
@@ -138,23 +138,28 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
             </SheetHeader>
 
             {/* Prescription Share ID Card */}
-            <div className="rounded-24 border border-moss-500/40 bg-moss-950/40 p-5 shadow-soft">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] uppercase tracking-wider text-moss-300 font-semibold flex items-center gap-1.5">
+            <div className="rounded-24 border border-emerald-500/30 bg-emerald-950/50 p-5 shadow-soft backdrop-blur-sm relative overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] uppercase tracking-wider text-emerald-400 font-semibold flex items-center gap-1.5">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" />
                   Prescription Share Code (Rx-ID)
                 </span>
-                <span className="text-[10px] font-mono text-moss-400">ABDM Token</span>
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-mono text-emerald-300 font-medium">
+                  ABDM Token
+                </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-                <div>
-                  <p className="font-mono text-2xl font-bold tracking-wider text-paper">
-                    {rxId}
-                  </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-emerald-400/30 bg-emerald-900/40 shadow-xs">
+                    <p className="font-mono text-2xl sm:text-3xl font-bold tracking-widest text-emerald-200 select-all">
+                      {rxId}
+                    </p>
+                  </div>
                   {spokenPhrase && (
-                    <p className="text-[11px] text-stone-400 mt-0.5">
-                      Phonetic pronunciation: <span className="text-stone-300 font-mono">{spokenPhrase}</span>
+                    <p className="text-[11px] text-stone-300 flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-stone-400">Phonetic pronunciation:</span>{' '}
+                      <span className="text-emerald-300 font-mono font-medium">{spokenPhrase}</span>
                     </p>
                   )}
                 </div>
@@ -162,14 +167,14 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyRx}
-                  className={`inline-flex items-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all shrink-0 ${
+                  className={`inline-flex items-center gap-2 rounded-xl py-2.5 px-4 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-xs ${
                     copiedRx
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-stone-200 border border-white/10'
+                      ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/50'
+                      : 'bg-white/10 hover:bg-white/20 text-stone-100 border border-white/15 hover:border-white/25'
                   }`}
                   aria-label="Copy prescription ID"
                 >
-                  {copiedRx ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedRx ? <Check className="h-3.5 w-3.5 text-white" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
                   <span>{copiedRx ? 'Copied Rx-ID!' : 'Copy Code'}</span>
                 </button>
               </div>
@@ -199,7 +204,7 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
                   Prescribing Physician
                 </span>
                 <div className="flex items-center gap-2 text-sm text-stone-200">
-                  <User className="h-3.5 w-3.5 text-moss-400" />
+                  <User className="h-3.5 w-3.5 text-emerald-400" />
                   <span>{doctorName}</span>
                 </div>
               </div>
@@ -291,14 +296,14 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
                 </Badge>
               </div>
 
-              <SheetTitle className="text-2xl sm:text-3xl text-paper font-serif font-normal">
+              <SheetTitle className="text-2xl sm:text-3xl text-stone-100 font-serif font-normal">
                 {isObservation && ((resource as any).code?.coding?.[0]?.display || (resource as any).code?.text || 'Lab Observation')}
                 {isCondition && ((resource as any).code?.coding?.[0]?.display || (resource as any).code?.text || 'Medical Condition')}
                 {isEncounter && ((resource as any).serviceProvider?.display || 'Medical Encounter')}
                 {!isObservation && !isCondition && !isEncounter && `${resource.resourceType} Resource`}
               </SheetTitle>
 
-              <SheetDescription className="text-xs text-stone-400">
+              <SheetDescription className="text-xs text-stone-300">
                 Detailed clinical biomarkers, NRCeS interoperability profiles, and coding terminology.
               </SheetDescription>
             </SheetHeader>
@@ -315,10 +320,10 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
                   </Badge>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold font-serif text-paper">
+                  <span className="text-3xl sm:text-4xl font-bold font-serif text-stone-100">
                     {(resource as any).valueQuantity?.value ?? (resource as any).valueString ?? 'Recorded'}
                   </span>
-                  <span className="text-sm text-stone-400">
+                  <span className="text-base text-emerald-400 font-medium">
                     {(resource as any).valueQuantity?.unit ?? ''}
                   </span>
                 </div>
@@ -331,8 +336,25 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
                 <span className="text-xs font-semibold uppercase tracking-wider text-stone-400">
                   Clinical Status
                 </span>
-                <p className="text-lg font-medium text-paper">
+                <p className="text-lg font-medium text-stone-100">
                   {(resource as any).clinicalStatus?.coding?.[0]?.display || 'Active'}
+                </p>
+              </div>
+            )}
+
+            {/* Encounter Quick Card */}
+            {isEncounter && (
+              <div className="rounded-20 border border-white/10 bg-white/5 p-4 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+                    Consultation Type
+                  </span>
+                  <Badge variant="outline" className="border-white/20 text-stone-300 font-mono text-[10px]">
+                    {(resource as any).status || 'finished'}
+                  </Badge>
+                </div>
+                <p className="text-lg font-medium text-stone-100">
+                  {(resource as any).class?.display || (resource as any).class?.code || 'Outpatient Consultation'}
                 </p>
               </div>
             )}

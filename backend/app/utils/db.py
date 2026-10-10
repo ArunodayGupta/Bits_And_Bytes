@@ -591,15 +591,27 @@ def save_confirmed_observation(
                 )
                 if pat_res.status_code == 200 and len(pat_res.json()) > 0:
                     patient_id = pat_res.json()[0]["id"]
-                    val_str = f"{observation.get('valueQuantity', {}).get('value')} {observation.get('valueQuantity', {}).get('unit', '')}"
+                    r_type = observation.get("resourceType", "Observation")
+                    if r_type == "Observation":
+                        val_str = f"{observation.get('valueQuantity', {}).get('value')} {observation.get('valueQuantity', {}).get('unit', '')}"
+                        title_str = observation.get("code", {}).get("text") or "Lab Observation"
+                        event_date = observation.get("effectiveDateTime")
+                    else:
+                        title_str = observation.get("medicationCodeableConcept", {}).get("text") or "Medication Request"
+                        val_str = (
+                            observation.get("dosageInstruction", [{}])[0].get("text")
+                            if observation.get("dosageInstruction")
+                            else ""
+                        )
+                        event_date = observation.get("authoredOn") or observation.get("effectiveDateTime")
 
                     resource_payload = {
                         "patient_id": patient_id,
                         "abha_id": norm_abha,
-                        "resource_type": "Observation",
+                        "resource_type": r_type,
                         "fhir_id": obs_id,
-                        "event_date": observation.get("effectiveDateTime"),
-                        "summary_title": observation.get("code", {}).get("text") or "Lab Observation",
+                        "event_date": event_date,
+                        "summary_title": title_str,
                         "summary_value": val_str,
                         "raw_json": observation,
                     }

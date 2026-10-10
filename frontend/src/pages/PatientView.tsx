@@ -56,23 +56,23 @@ function ShareToDoctor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         {/* Prescription Code */}
-        <div className="rounded-20 border border-moss-500/30 bg-moss-50/60 dark:bg-moss-950/20 p-4 flex flex-col justify-between gap-3">
+        <div className="rounded-20 border border-moss-500/30 bg-moss-50 dark:bg-moss-950/40 p-4 flex flex-col justify-between gap-3 shadow-xs">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider text-moss-700 dark:text-moss-400 font-semibold">
+              <span className="text-[11px] uppercase tracking-wider text-moss-700 dark:text-moss-300 font-semibold">
                 Prescription Share Code
               </span>
-              <span className="text-[10px] text-moss-600 font-mono">Speakable Rx-ID</span>
+              <span className="text-[10px] text-moss-600 dark:text-moss-400 font-mono font-medium">Speakable Rx-ID</span>
             </div>
-            <p className="font-mono text-lg sm:text-2xl font-bold text-ink tracking-wider mt-1 break-all sm:break-normal">{code}</p>
+            <p className="font-mono text-lg sm:text-2xl font-bold text-ink dark:text-stone-100 tracking-wider mt-1 break-all sm:break-normal">{code}</p>
           </div>
           <button
             type="button"
             onClick={handleCopyRx}
-            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all ${
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all cursor-pointer ${
               copiedRx
-                ? 'bg-moss-200 text-moss-800 border border-moss-400'
-                : 'bg-moss-600 text-paper hover:bg-moss-700'
+                ? 'bg-moss-200 dark:bg-moss-800 text-moss-800 dark:text-moss-200 border border-moss-400'
+                : 'bg-moss-600 text-white hover:bg-moss-700 shadow-xs'
             }`}
             aria-label="Copy prescription share code"
           >
@@ -82,23 +82,23 @@ function ShareToDoctor({
         </div>
 
         {/* ABHA Health ID */}
-        <div className="rounded-20 border border-hairline bg-paper-2 p-4 flex flex-col justify-between gap-3">
+        <div className="rounded-20 border border-hairline bg-paper-2 dark:bg-stone-900/40 p-4 flex flex-col justify-between gap-3 shadow-xs">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider text-ink-soft font-semibold">
+              <span className="text-[11px] uppercase tracking-wider text-ink-soft dark:text-stone-300 font-semibold">
                 ABHA Health ID
               </span>
-              <span className="text-[10px] text-ink-soft font-mono">Verified ABDM ID</span>
+              <span className="text-[10px] text-ink-soft dark:text-stone-400 font-mono font-medium">Verified ABDM ID</span>
             </div>
-            <p className="font-mono text-lg sm:text-2xl font-bold text-ink tracking-wider mt-1 break-all sm:break-normal">{displayAbha}</p>
+            <p className="font-mono text-lg sm:text-2xl font-bold text-ink dark:text-stone-100 tracking-wider mt-1 break-all sm:break-normal">{displayAbha}</p>
           </div>
           <button
             type="button"
             onClick={handleCopyAbha}
-            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all ${
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all cursor-pointer ${
               copiedAbha
                 ? 'bg-ink/20 text-ink border border-ink/30'
-                : 'border border-hairline bg-card text-ink hover:bg-paper-2'
+                : 'border border-hairline bg-card dark:bg-stone-800/60 text-ink dark:text-stone-200 hover:bg-paper-2 dark:hover:bg-stone-800'
             }`}
             aria-label="Copy ABHA ID"
           >
