@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useContext } from 'react';
+import React, { useState, useCallback, useMemo, useContext, useRef } from 'react';
 import type {
   FhirBundle,
   FhirPatient,
@@ -38,11 +38,18 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
   const [activeFilter, setActiveFilter] = useState<'all' | TimelineEventType>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Track whether data has ever been loaded so background refreshes don't show skeletons
+  const hasLoadedOnce = useRef<boolean>(false);
 
   const clearToast = useCallback(() => setToastMessage(null), []);
 
   const loadData = useCallback(async (requestedSource: DataSourceType, patientId?: string) => {
-    setIsLoading(true);
+    // Only show the loading skeleton on the very first fetch.
+    // Background refreshes update silently so the UI doesn't flicker.
+    const isBackground = hasLoadedOnce.current;
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     let didFallback = false;
     const targetPatientId = patientId ?? currentPatientId;
     const profile = PATIENT_PROFILES.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
@@ -87,11 +94,18 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
         setStatusText(`Source: Offline (${profile.name})`);
       }
     } catch (err) {
+      // AbortErrors are intentional (React Strict Mode double-mount / unmount).
+      // Silently ignore them — the second mount will fetch successfully.
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setIsLoading(false);
+        return;
+      }
       console.error('Critical loading error:', err);
       setStatusState('fallback');
       setStatusText('DB unavailable, showing cached bundle');
       setToastMessage('Live database unreachable, showing local bundle.');
     } finally {
+      hasLoadedOnce.current = true;
       setIsLoading(false);
     }
   }, [currentPatientId]);
@@ -101,7 +115,8 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     void loadData('database');
   }, [loadData]);
 
-  // Auto-refresh when in database mode so timeline stays in sync with live DB updates
+  // Silent background refresh every 60s when in database mode.
+  // Does NOT show loading skeletons (hasLoadedOnce is true by then).
   React.useEffect(() => {
     if (source !== 'database' && source !== 'live') return;
 
@@ -109,20 +124,10 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         void loadData(source);
       }
-    }, 20000);
-
-    const onFocus = () => {
-      void loadData(source);
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', onFocus);
-    }
+    }, 60000);
 
     return () => {
       clearInterval(interval);
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', onFocus);
-      }
     };
   }, [source, loadData]);
 

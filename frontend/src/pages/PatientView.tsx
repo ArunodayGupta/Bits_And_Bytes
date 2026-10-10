@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePatientData } from '@/context/usePatientData';
 import { useAuth } from '@/context/AuthContext';
 import { Timeline } from '@/components/Timeline';
@@ -20,17 +20,22 @@ export const PatientView: React.FC = () => {
   } = usePatientData();
 
   const [isScanOpen, setIsScanOpen] = useState(false);
+  // Guard so we only call setPatientId once per abhaId (not on every re-render)
+  const appliedAbhaRef = useRef<string | null>(null);
 
-  // Enforce session ABHA in patient view (no free-text switching)
+  // Enforce session ABHA in patient view (no free-text switching).
+  // Only runs when abhaId actually changes, not on every render.
   useEffect(() => {
-    if (abhaId && availablePatients.length > 0) {
-      const cleanSessionAbha = abhaId.replace(/\D/g, '');
-      const matched = availablePatients.find(
-        (p) => p.abha.replace(/\D/g, '') === cleanSessionAbha
-      );
-      if (matched) {
-        setPatientId(matched.id);
-      }
+    if (!abhaId || availablePatients.length === 0) return;
+    if (appliedAbhaRef.current === abhaId) return; // already applied
+
+    const cleanSessionAbha = abhaId.replace(/\D/g, '');
+    const matched = availablePatients.find(
+      (p) => p.abha.replace(/\D/g, '') === cleanSessionAbha
+    );
+    if (matched) {
+      appliedAbhaRef.current = abhaId;
+      setPatientId(matched.id);
     }
   }, [abhaId, availablePatients, setPatientId]);
 

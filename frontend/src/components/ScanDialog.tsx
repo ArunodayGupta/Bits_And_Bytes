@@ -317,9 +317,24 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
             resourceType: 'Observation',
             id: `obs-scan-${item.test_key}-${Date.now()}`,
             status: 'preliminary',
+            category: [
+              {
+                coding: [
+                  {
+                    system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                    code: 'laboratory',
+                    display: 'Laboratory',
+                  },
+                ],
+              },
+            ],
             code: {
               coding: [{ system: 'http://loinc.org', code: item.loinc, display: item.display }],
               text: item.display,
+            },
+            subject: {
+              reference: `urn:uuid:patient-${abhaId || '91-1234-5678-9012'}`,
+              display: 'Patient',
             },
             effectiveDateTime: reportDate,
             valueQuantity: {
@@ -329,6 +344,7 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
               code: item.unit === '%' ? '%' : item.unit,
             },
             meta: {
+              profile: ['https://nrces.in/ndhm/fhir/r4/StructureDefinition/Observation'],
               tag: [{ system: 'https://phr-demo.example.org/source', code: 'ocr-scan' }],
             },
           };

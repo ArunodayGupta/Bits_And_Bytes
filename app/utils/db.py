@@ -327,28 +327,42 @@ def save_confirmed_observation(
                     try:
                         resource_payload["source"] = "ocr_scan"
                         write_res = client.post(
-                            f"{SUPABASE_URL}/rest/v1/fhir_resources",
+                            f"{SUPABASE_URL}/rest/v1/fhir_resources?on_conflict=patient_id,resource_type,fhir_id",
                             headers={**_get_headers(), "Prefer": "resolution=merge-duplicates,return=representation"},
                             json=resource_payload,
                         )
                         if write_res.status_code in (200, 201):
                             log_access("scan", norm_abha, True)
+                            _OFFLINE_SCAN_STORE[norm_abha] = [o for o in _OFFLINE_SCAN_STORE[norm_abha] if o.get("id") != obs_id]
                             return True, already_existed
-                    except Exception:
-                        pass
+                        else:
+                            with open("supabase_error.log", "w") as f:
+                                f.write(f"Supabase write 1 failed: {write_res.status_code} {write_res.text}")
+                            print(f"Supabase write 1 failed: {write_res.status_code} {write_res.text}")
+                    except Exception as e:
+                        with open("supabase_error.log", "w") as f:
+                            f.write(f"Supabase write 1 exception: {e}")
+                        print(f"Supabase write 1 exception: {e}")
 
                     # Fallback without top-level source column if DB migration not yet applied
                     resource_payload.pop("source", None)
                     write_res2 = client.post(
-                        f"{SUPABASE_URL}/rest/v1/fhir_resources",
+                        f"{SUPABASE_URL}/rest/v1/fhir_resources?on_conflict=patient_id,resource_type,fhir_id",
                         headers={**_get_headers(), "Prefer": "resolution=merge-duplicates,return=representation"},
                         json=resource_payload,
                     )
                     if write_res2.status_code in (200, 201):
                         log_access("scan", norm_abha, True)
+                        _OFFLINE_SCAN_STORE[norm_abha] = [o for o in _OFFLINE_SCAN_STORE[norm_abha] if o.get("id") != obs_id]
                         return True, already_existed
-        except Exception:
-            pass
+                    else:
+                        with open("supabase_error.log", "w") as f:
+                            f.write(f"Supabase write 2 failed: {write_res2.status_code} {write_res2.text}")
+                        print(f"Supabase write 2 failed: {write_res2.status_code} {write_res2.text}")
+        except Exception as e:
+            with open("supabase_error.log", "w") as f:
+                f.write(f"Supabase overall exception: {e}")
+            print(f"Supabase overall exception: {e}")
 
     log_access("scan", norm_abha, True)
     return True, already_existed
