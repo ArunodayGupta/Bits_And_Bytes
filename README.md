@@ -18,7 +18,8 @@
 - 🌐 **Live Web Application**:  
   👉 **[https://bits-and-bytes-ldox.vercel.app/](https://bits-and-bytes-ldox.vercel.app/)**
 - 🎬 **Watch App Video Demo**:  
-  👉 **[Submit / View Video Demo (Google Form Link)](https://docs.google.com/forms/d/e/1FAIpQLSdGGcpgudhHGk-Etcpt1cgaMe7NkxtUMQIFjuO4kq5v4suKGQ/viewform)**
+  👉 **[App Video Demo ](https://drive.google.com/file/u/2/d/1vnCzpE9y4XQjyKdHRRHncmJbkkzlG94o/view?usp=sharing)**
+  👉 **[Website Video Demo ](https://drive.google.com/drive/folders/1X0FsGJ9nvthXsiJ01ghZBHF3PCwvTKuK)**
 - 📱 **Download Android Release APK**:  
   👉 **[Download Latest APK from GitHub Releases](https://github.com/ArunodayGupta/Bits_And_Bytes/releases)**  
   *(Ready-to-install `HealthSafe-v1.0.0.apk` signed and compatible with Android 7.0+ / API 24+)*
