@@ -1,5 +1,5 @@
 import type { FhirBundle } from './types';
-import offlineBundleData from '@/data/op-consultation.json';
+import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE } from '@/data/patients';
 
 export interface PatientDataResult {
   bundle: FhirBundle;
@@ -10,6 +10,17 @@ export interface PatientDataResult {
 
 // Global listeners for fallback event if needed across components
 export const FALLBACK_EVENT_NAME = 'healthsafe:live-fallback';
+
+/**
+ * Returns the matching static bundle for an ABHA ID from the loaded profiles,
+ * falling back to DEFAULT_PATIENT_PROFILE.
+ */
+export function getLocalBundleForAbha(abhaId?: string): FhirBundle {
+  if (!abhaId) return DEFAULT_PATIENT_PROFILE.bundle;
+  const clean = abhaId.replace(/\D/g, '');
+  const matched = PATIENT_PROFILES.find((p) => p.abha.replace(/\D/g, '') === clean);
+  return (matched ? matched.bundle : DEFAULT_PATIENT_PROFILE.bundle) as FhirBundle;
+}
 
 /**
  * Fetch patient data directly from the live database (FastAPI / Supabase).
@@ -23,9 +34,11 @@ export async function fetchPatientData(
   onFallback?: () => void,
   abhaId: string = '91-1234-5678-9012'
 ): Promise<FhirBundle> {
+  const localBundle = getLocalBundleForAbha(abhaId);
+
   if (source === 'offline') {
     // Immediately resolve without any network request
-    return JSON.parse(JSON.stringify(offlineBundleData)) as FhirBundle;
+    return JSON.parse(JSON.stringify(localBundle)) as FhirBundle;
   }
 
   const controller = new AbortController();
@@ -77,7 +90,7 @@ export async function fetchPatientData(
       );
     }
 
-    // Safely return offline bundle
-    return JSON.parse(JSON.stringify(offlineBundleData)) as FhirBundle;
+    // Safely return offline bundle matching the requested patient
+    return JSON.parse(JSON.stringify(localBundle)) as FhirBundle;
   }
 }

@@ -12,6 +12,8 @@ import { DarkJsonViewer } from './DarkJsonViewer';
 import { SavingsCard } from './SavingsCard';
 import { Badge } from '@/components/ui/badge';
 import { formatSpokenRxId } from '@/lib/rxId';
+import { usePatientData } from '@/context/usePatientData';
+import { downloadFhirBundlePdf } from '@/lib/fhir/downloadFhirBundlePdf';
 import {
   Layers,
   Pill,
@@ -29,6 +31,8 @@ import {
   Activity,
   ChevronDown,
   ChevronUp,
+  Download,
+  Loader2,
 } from 'lucide-react';
 
 interface ResourceSheetProps {
@@ -44,6 +48,23 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
 }) => {
   const [copiedRx, setCopiedRx] = useState(false);
   const [showTechnicalInspector, setShowTechnicalInspector] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { bundle } = usePatientData();
+
+  const handleDownloadSingleReport = async () => {
+    if (!bundle || !resource?.id) return;
+    setIsExporting(true);
+    try {
+      await downloadFhirBundlePdf(bundle, {
+        selectedResourceIds: [resource.id],
+        reportTitle: `${resource.resourceType} Record`,
+      });
+    } catch (err) {
+      console.error('Failed to export report PDF:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (!resource) return null;
 
@@ -130,6 +151,21 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
                   <SheetDescription className="text-xs text-stone-300 mt-1">
                     Official digital prescription record issued by licensed medical practitioner.
                   </SheetDescription>
+              <div className="mt-2.5">
+                <button
+                  type="button"
+                  onClick={handleDownloadSingleReport}
+                  disabled={isExporting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-stone-200 transition-colors cursor-pointer"
+                >
+                  {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 text-emerald-400" />}
+                  <span>Download Report (PDF)</span>
+                </button>
+              </div>
+
+
+
+
                 </div>
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 font-serif text-2xl border border-sky-500/30">
                   ℞
@@ -306,6 +342,17 @@ export const ResourceSheet: React.FC<ResourceSheetProps> = ({
               <SheetDescription className="text-xs text-stone-300">
                 Detailed clinical biomarkers, NRCeS interoperability profiles, and coding terminology.
               </SheetDescription>
+              <div className="mt-2.5">
+                <button
+                  type="button"
+                  onClick={handleDownloadSingleReport}
+                  disabled={isExporting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-stone-200 transition-colors cursor-pointer"
+                >
+                  {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 text-emerald-400" />}
+                  <span>Download Report (PDF)</span>
+                </button>
+              </div>
             </SheetHeader>
 
             {/* Observation Quick Metrics Card */}

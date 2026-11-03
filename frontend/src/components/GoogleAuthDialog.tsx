@@ -29,6 +29,13 @@ interface DemoGoogleAccount {
 
 const PRESET_ACCOUNTS: DemoGoogleAccount[] = [
   {
+    email: 'priya.sharma@gmail.com',
+    name: 'Priya Sharma',
+    avatarColor: 'bg-purple-600',
+    suggestedRole: 'patient',
+    abhaId: '91-2345-6789-0123',
+  },
+  {
     email: 'piyushmishra0207@gmail.com',
     name: 'Piyush Mishra',
     avatarColor: 'bg-blue-600',
@@ -61,7 +68,7 @@ export const GoogleAuthDialog: React.FC<GoogleAuthDialogProps> = ({
   defaultRole = 'patient',
 }) => {
   const navigate = useNavigate();
-  const { loginWithGoogle, loginPatient } = useAuth();
+  const { loginWithGoogle } = useAuth();
   const { setPatientId, availablePatients } = usePatientData();
 
   const [selectedEmail, setSelectedEmail] = useState<string>(PRESET_ACCOUNTS[0].email);
@@ -104,6 +111,7 @@ export const GoogleAuthDialog: React.FC<GoogleAuthDialogProps> = ({
 
     let finalEmail = selectedEmail;
     let finalName = 'Google User';
+    let chosenAbha: string | undefined = undefined;
 
     if (isCustom) {
       finalEmail = customEmail.trim() || 'user@gmail.com';
@@ -112,17 +120,31 @@ export const GoogleAuthDialog: React.FC<GoogleAuthDialogProps> = ({
       const acc = PRESET_ACCOUNTS.find((a) => a.email === selectedEmail);
       if (acc) {
         finalName = acc.name;
+        chosenAbha = acc.abhaId;
       }
     }
 
     const roleToUse = selectedRole || 'patient';
 
-    // If patient role, bind to first patient profile
+    // If patient role, bind to matching patient profile
     if (roleToUse === 'patient' && availablePatients.length > 0) {
-      setPatientId(availablePatients[0].id);
+      const matched =
+        availablePatients.find((p) => {
+          if (chosenAbha && p.abha.replace(/\D/g, '') === chosenAbha.replace(/\D/g, '')) return true;
+          const pNameLower = p.name.toLowerCase();
+          const fNameLower = finalName.toLowerCase();
+          const fEmailLower = finalEmail.toLowerCase();
+          const firstName = pNameLower.split(' ')[0];
+          return pNameLower === fNameLower || fNameLower.includes(firstName) || fEmailLower.includes(firstName);
+        }) || availablePatients[0];
+
+      setPatientId(matched.id);
+      if (!chosenAbha && matched.abha) {
+        chosenAbha = matched.abha;
+      }
     }
 
-    loginWithGoogle(finalEmail, finalName, roleToUse);
+    loginWithGoogle(finalEmail, finalName, roleToUse, chosenAbha);
 
     setIsSubmitting(false);
     onOpenChange(false);

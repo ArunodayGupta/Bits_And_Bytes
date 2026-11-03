@@ -27,7 +27,7 @@ export interface AuthContextValue {
   loginDoctor: (name?: string, credentials?: { regNumber?: string; council?: string; hospital?: string }) => void;
   loginClinician: (name?: string, credentials?: { regNumber?: string; council?: string; dispensary?: string }) => void;
   loginAdmin: (name?: string) => void;
-  loginWithGoogle: (email: string, name?: string, preferredRole?: UserRole) => void;
+  loginWithGoogle: (email: string, name?: string, preferredRole?: UserRole, customAbha?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -165,26 +165,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
   }, []);
 
-  const loginWithGoogle = useCallback((email: string, name?: string, preferredRole: UserRole = 'patient') => {
-    const normEmail = email.trim();
-    const finalRole = preferredRole || 'patient';
-    const finalName = name || normEmail.split('@')[0];
-    setRole(finalRole);
-    setUserEmail(normEmail);
-    setUserName(finalName);
-    sessionStorage.setItem(STORAGE_KEY_ROLE, finalRole);
-    sessionStorage.setItem(STORAGE_KEY_EMAIL, normEmail);
-    sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
+  const loginWithGoogle = useCallback(
+    (email: string, name?: string, preferredRole: UserRole = 'patient', customAbha?: string) => {
+      const normEmail = email.trim();
+      const finalRole = preferredRole || 'patient';
+      const finalName = name || normEmail.split('@')[0];
+      setRole(finalRole);
+      setUserEmail(normEmail);
+      setUserName(finalName);
+      sessionStorage.setItem(STORAGE_KEY_ROLE, finalRole);
+      sessionStorage.setItem(STORAGE_KEY_EMAIL, normEmail);
+      sessionStorage.setItem(STORAGE_KEY_NAME, finalName);
 
-    if (finalRole === 'patient') {
-      const defaultAbha = '91-1234-5678-9012';
-      setAbhaId(defaultAbha);
-      sessionStorage.setItem(STORAGE_KEY_ABHA, defaultAbha);
-    } else {
-      setAbhaId(null);
-      sessionStorage.removeItem(STORAGE_KEY_ABHA);
-    }
-  }, []);
+      if (finalRole === 'patient') {
+        let assignedAbha = customAbha;
+        if (!assignedAbha) {
+          const lower = normEmail.toLowerCase();
+          if (lower.includes('priya')) {
+            assignedAbha = '91-2345-6789-0123';
+          } else if (lower.includes('vikram')) {
+            assignedAbha = '91-3456-7890-1234';
+          } else if (lower.includes('ananya')) {
+            assignedAbha = '91-4567-8901-2345';
+          } else if (lower.includes('sunita')) {
+            assignedAbha = '91-5678-9012-3456';
+          } else {
+            assignedAbha = '91-1234-5678-9012';
+          }
+        }
+        setAbhaId(assignedAbha);
+        sessionStorage.setItem(STORAGE_KEY_ABHA, assignedAbha);
+      } else {
+        setAbhaId(null);
+        sessionStorage.removeItem(STORAGE_KEY_ABHA);
+      }
+    },
+    []
+  );
 
   const logout = useCallback(() => {
     setRole(null);

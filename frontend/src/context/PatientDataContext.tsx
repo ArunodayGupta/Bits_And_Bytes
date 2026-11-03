@@ -8,7 +8,8 @@ import type {
 import { fetchPatientData } from '@/lib/fhir/fetchPatientData';
 import { buildTimeline } from '@/lib/fhir/buildTimeline';
 import { injectRxIdsIntoBundle } from '@/lib/rxId';
-import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE } from '@/data/patients';
+import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE, type PatientProfile } from '@/data/patients';
+import { AuthContext } from './AuthContext';
 import {
   PatientDataContext,
   type DataSourceType,
@@ -19,6 +20,22 @@ import {
 export type { DataSourceType, SourceStatusState, PatientDataContextValue } from './contextDefinition';
 
 // Initial offline bootstrap to ensure zero flash on initial render
+function getInitialProfile(): PatientProfile {
+  try {
+    if (typeof window !== 'undefined') {
+      const storedAbha = sessionStorage.getItem('healthsafe_auth_abha');
+      if (storedAbha) {
+        const clean = storedAbha.replace(/\D/g, '');
+        const matched = PATIENT_PROFILES.find((p) => p.abha.replace(/\D/g, '') === clean);
+        if (matched) return matched;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_PATIENT_PROFILE;
+}
+
 const initialRaw = DEFAULT_PATIENT_PROFILE.bundle;
 const initialPrepared = injectRxIdsIntoBundle(initialRaw);
 const initialPatient =
@@ -26,14 +43,24 @@ const initialPatient =
   null;
 
 export function PatientDataProvider({ children }: { children: React.ReactNode }) {
-  const [currentPatientId, setCurrentPatientId] = useState<string>(DEFAULT_PATIENT_PROFILE.id);
+  const auth = useContext(AuthContext);
+  const authAbha = auth?.abhaId;
+
+  const [currentPatientId, setCurrentPatientId] = useState<string>(() => getInitialProfile().id);
   const [source, setSourceState] = useState<DataSourceType>('database');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusState, setStatusState] = useState<SourceStatusState>('live');
   const [statusText, setStatusText] = useState<string>('Database Synced');
-  const [rawBundle, setRawBundle] = useState<FhirBundle | null>(initialRaw);
-  const [bundle, setBundle] = useState<FhirBundle | null>(initialPrepared.bundle);
-  const [patient, setPatient] = useState<FhirPatient | null>(initialPatient);
+  const [rawBundle, setRawBundle] = useState<FhirBundle | null>(() => getInitialProfile().bundle);
+  const [bundle, setBundle] = useState<FhirBundle | null>(() => {
+    const prof = getInitialProfile();
+    return injectRxIdsIntoBundle(prof.bundle).bundle;
+  });
+  const [patient, setPatient] = useState<FhirPatient | null>(() => {
+    const prof = getInitialProfile();
+    const prep = injectRxIdsIntoBundle(prof.bundle).bundle;
+    return (prep.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient) || null;
+  });
   const [selectedResource, setSelectedResource] = useState<FhirResource | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | TimelineEventType>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -159,13 +186,14 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
 
   // Load from database on initial mount
   React.useEffect(() => {
-    void loadData('database');
+    const initProfile = getInitialProfile();
+    void loadData('database', initProfile.id);
   }, [loadData]);
 
   // Immediately reload whenever a doctor issues a new prescription
   React.useEffect(() => {
     const handleRxCreated = () => {
-      void loadData('database');
+      void loadData('database', currentPatientId);
     };
     window.addEventListener('healthsafe_rx_created', handleRxCreated);
     return () => window.removeEventListener('healthsafe_rx_created', handleRxCreated);
@@ -206,6 +234,17 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     },
     [source, loadData]
   );
+
+  // Synchronize active patient with AuthContext whenever logged-in ABHA changes
+  React.useEffect(() => {
+    if (authAbha) {
+      const clean = authAbha.replace(/\D/g, '');
+      const matched = PATIENT_PROFILES.find((p) => p.abha.replace(/\D/g, '') === clean);
+      if (matched && matched.id !== currentPatientId) {
+        setPatientId(matched.id);
+      }
+    }
+  }, [authAbha, currentPatientId, setPatientId]);
 
   const reload = useCallback(async () => {
     await loadData(source);

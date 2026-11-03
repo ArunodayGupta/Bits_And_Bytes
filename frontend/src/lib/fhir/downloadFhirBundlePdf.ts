@@ -3,9 +3,11 @@ import type { FhirBundle, FhirPatient, FhirResource } from './types';
 const PAGE_MARGIN = 16;
 const BOTTOM_MARGIN = 18;
 const LINE_HEIGHT = 4.8;
-const CATEGORY_ORDER = ['Visit', 'Diagnosis', 'Clinical history', 'Prescription', 'Other record'];
+const CATEGORY_ORDER = ['Visit', 'Diagnosis', 'Lab report', 'Clinical history', 'Prescription', 'Other record'];
 type ResourceRecord = Record<string, any>;
-type ClinicalItem = {
+
+export type ClinicalItem = {
+  id: string;
   resource: FhirResource;
   category: string;
   dateKey: string;
@@ -13,6 +15,12 @@ type ClinicalItem = {
   title: string;
   details: string[];
 };
+
+export interface DownloadPdfOptions {
+  selectedResourceIds?: string[] | Set<string>;
+  reportTitle?: string;
+  filename?: string;
+}
 
 function pdfText(value: unknown): string {
   return String(value ?? '').replace(/[^\x20-\x7E]/gu, (character) => {
@@ -36,9 +44,9 @@ function getPatientName(bundle: FhirBundle): string {
       .join(' ') || 'Patient';
 }
 
-function makeFilename(name: string): string {
+function makeFilename(name: string, suffix = '_clinical_history_fhir_r4'): string {
   const slug = name.normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s-]+/g, '_').toLowerCase();
-  return `${slug || 'patient'}_clinical_history_fhir_r4.pdf`;
+  return `${slug || 'patient'}${suffix}.pdf`;
 }
 
 function concept(value: unknown): string | undefined {
@@ -148,6 +156,7 @@ function getCategory(resourceType: string): string {
     case 'Condition': return 'Diagnosis';
     case 'Observation': return 'Clinical history';
     case 'MedicationRequest': return 'Prescription';
+    case 'DiagnosticReport': return 'Lab report';
     case 'Patient':
     case 'Practitioner':
     case 'Organization':
@@ -163,6 +172,7 @@ function getTitle(resource: FhirResource): string {
     case 'Condition': return concept(item.code) || 'Diagnosis';
     case 'Observation': return concept(item.code) || 'Clinical observation';
     case 'MedicationRequest': return concept(item.medicationCodeableConcept) || 'Medication';
+    case 'DiagnosticReport': return concept(item.code) || item.conclusion || 'Diagnostic report';
     default: return item.code ? concept(item.code) || resource.resourceType : resource.resourceType;
   }
 }
@@ -214,6 +224,15 @@ function getDetails(resource: FhirResource): string[] {
       add('FHIR resource ID', resource.id);
       break;
     }
+    case 'DiagnosticReport': {
+      add('Status', item.status);
+      add('Category', concept(item.category?.[0]));
+      add('Issued', displayDateTime(item.issued || item.effectiveDateTime));
+      if (item.conclusion) add('Conclusion', item.conclusion);
+      details.push(...codeDetails(item.code));
+      add('FHIR resource ID', resource.id);
+      break;
+    }
     default:
       add('Status', item.status);
       add('FHIR resource ID', resource.id);
@@ -224,12 +243,14 @@ function getDetails(resource: FhirResource): string[] {
   return [...new Set(details)];
 }
 
-function buildClinicalItems(bundle: FhirBundle): ClinicalItem[] {
-  return (bundle.entry || []).flatMap(({ resource }) => {
+export function buildClinicalItems(bundle: FhirBundle): ClinicalItem[] {
+  return (bundle.entry || []).flatMap(({ resource }, index) => {
     const category = getCategory(resource.resourceType);
     if (!category) return [];
     const rawDate = eventDate(resource);
+    const id = resource.id || `${resource.resourceType}-${index}`;
     return [{
+      id,
       resource,
       category,
       dateKey: dateKey(rawDate),
@@ -246,11 +267,41 @@ function buildClinicalItems(bundle: FhirBundle): ClinicalItem[] {
   });
 }
 
-export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
+export async function downloadFhirBundlePdf(
+  bundle: FhirBundle,
+  optionsOrIds?: DownloadPdfOptions | string[] | Set<string>
+): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const patientName = getPatientName(bundle);
   const patient = getPatient(bundle);
-  const items = buildClinicalItems(bundle);
+
+  let selectedIds: Set<string> | undefined;
+  let customTitle: string | undefined;
+  let customFilename: string | undefined;
+
+  if (optionsOrIds) {
+    if (Array.isArray(optionsOrIds) || optionsOrIds instanceof Set) {
+      selectedIds = optionsOrIds instanceof Set ? optionsOrIds : new Set(optionsOrIds);
+    } else if (typeof optionsOrIds === 'object') {
+      if (optionsOrIds.selectedResourceIds) {
+        selectedIds = optionsOrIds.selectedResourceIds instanceof Set
+          ? optionsOrIds.selectedResourceIds
+          : new Set(optionsOrIds.selectedResourceIds);
+      }
+      customTitle = optionsOrIds.reportTitle;
+      customFilename = optionsOrIds.filename;
+    }
+  }
+
+  const allItems = buildClinicalItems(bundle);
+  const items = selectedIds && selectedIds.size > 0
+    ? allItems.filter((item) => selectedIds!.has(item.id) || (item.resource.id && selectedIds!.has(item.resource.id)))
+    : selectedIds && selectedIds.size === 0
+    ? []
+    : allItems;
+
+  const isFiltered = Boolean(selectedIds && selectedIds.size > 0 && items.length < allItems.length);
+
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -259,8 +310,10 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
   let activeDateLabel = '';
 
   pdf.setProperties({
-    title: `${patientName} - Clinical History (FHIR R4)`,
-    subject: 'Date-based clinical timeline with diagnoses, observations, visits, and prescriptions',
+    title: customTitle || `${patientName} - Clinical History (FHIR R4)`,
+    subject: isFiltered
+      ? `Selected clinical reports (${items.length} records)`
+      : 'Date-based clinical timeline with diagnoses, observations, visits, and prescriptions',
     creator: 'HealthSafe',
   });
 
@@ -272,7 +325,7 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(255, 255, 255);
-    pdf.text(`${pdfText(patientName)} - Clinical History`, PAGE_MARGIN, 8.5);
+    pdf.text(`${pdfText(patientName)} - ${isFiltered ? 'Selected Clinical Records' : 'Clinical History'}`, PAGE_MARGIN, 8.5);
     y = 19;
     if (activeDateLabel) {
       pdf.setFont('helvetica', 'italic');
@@ -324,17 +377,23 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
   pdf.setTextColor(255, 255, 255);
-  pdf.text('Clinical History', PAGE_MARGIN + 6, y + 11);
+  pdf.text(customTitle || (isFiltered ? 'Clinical History (Selected Records)' : 'Clinical History'), PAGE_MARGIN + 6, y + 11);
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
-  pdf.text('Patient timeline - HL7 FHIR R4', PAGE_MARGIN + 6, y + 18);
+  pdf.text(
+    isFiltered
+      ? `Selected reports (${items.length} of ${allItems.length} records) · HL7 FHIR R4`
+      : 'Patient timeline - HL7 FHIR R4',
+    PAGE_MARGIN + 6,
+    y + 18,
+  );
   pdf.setFontSize(11);
   pdf.text(`Patient: ${pdfText(patientName)}`, PAGE_MARGIN + 6, y + 27);
   y += 41;
 
   const diagnoses = items.filter((item) => item.category === 'Diagnosis').length;
   const visits = items.filter((item) => item.category === 'Visit').length;
-  const observations = items.filter((item) => item.category === 'Clinical history').length;
+  const observations = items.filter((item) => item.category === 'Clinical history' || item.category === 'Lab report').length;
   const prescriptions = items.filter((item) => item.category === 'Prescription').length;
   const generated = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
   const demographicParts = [
@@ -345,7 +404,14 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
     addWrapped(demographicParts.join('   |   '), PAGE_MARGIN, contentWidth, { size: 9, color: [75, 88, 78] });
   }
   addWrapped(`Generated ${generated}   |   ${diagnoses} diagnoses   |   ${visits} visits   |   ${observations} clinical results   |   ${prescriptions} prescriptions`, PAGE_MARGIN, contentWidth, { size: 9, color: [75, 88, 78] });
-  addWrapped('The timeline below groups available FHIR records by clinical date. Only information present in this chart is included.', PAGE_MARGIN, contentWidth, { size: 8.5, color: [100, 110, 102] });
+  addWrapped(
+    isFiltered
+      ? `This customized report contains ${items.length} records selected from the patient's complete history.`
+      : 'The timeline below groups available FHIR records by clinical date. Only information present in this chart is included.',
+    PAGE_MARGIN,
+    contentWidth,
+    { size: 8.5, color: [100, 110, 102] },
+  );
   y += 5;
 
   const grouped = new Map<string, ClinicalItem[]>();
@@ -355,8 +421,15 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
     grouped.set(item.dateKey, list);
   }
 
-  if (diagnoses === 0) {
-    addWrapped('No diagnosis records (FHIR Condition resources) were present in this chart.', PAGE_MARGIN, contentWidth, { size: 9, color: [133, 83, 51] });
+  if (diagnoses === 0 && items.length > 0) {
+    addWrapped(
+      isFiltered
+        ? 'No diagnosis records were included in this selection.'
+        : 'No diagnosis records (FHIR Condition resources) were present in this chart.',
+      PAGE_MARGIN,
+      contentWidth,
+      { size: 9, color: [133, 83, 51] },
+    );
     y += 4;
   }
 
@@ -420,7 +493,7 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
   }
 
   if (items.length === 0) {
-    addWrapped('No dated clinical records were available in this FHIR bundle.', PAGE_MARGIN, contentWidth, { size: 9, color: [100, 110, 102] });
+    addWrapped('No clinical records were selected for this PDF export.', PAGE_MARGIN, contentWidth, { size: 9, color: [100, 110, 102] });
   }
 
   const pageCount = pdf.getNumberOfPages();
@@ -432,5 +505,6 @@ export async function downloadFhirBundlePdf(bundle: FhirBundle): Promise<void> {
     pdf.text(`HealthSafe  |  FHIR R4  |  Page ${page} of ${pageCount}`, pageWidth - PAGE_MARGIN, pageHeight - 7, { align: 'right' });
   }
 
-  pdf.save(makeFilename(patientName));
+  const resolvedFilename = customFilename || (isFiltered ? makeFilename(patientName, '_selected_reports') : makeFilename(patientName));
+  pdf.save(resolvedFilename);
 }

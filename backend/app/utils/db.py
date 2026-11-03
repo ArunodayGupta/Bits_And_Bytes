@@ -778,6 +778,33 @@ def get_patient_bundle_from_db(abha_id: str) -> dict[str, Any] | None:
             pass
 
     # In-memory demo bundle if DB unavailable
+    bundle_file_map = {
+        "91-1234-5678-9012": "ramesh-kumar.bundle.json",
+        "91-2345-6789-0123": "priya-sharma.bundle.json",
+        "91-3456-7890-1234": "arun-patel.bundle.json",
+        "91-4567-8901-2345": "sunita-verma.bundle.json",
+        "91-5678-9012-3456": "vikram-malhotra.bundle.json",
+        "91-6789-0123-4567": "ananya-deshmukh.bundle.json",
+    }
+    if norm_abha in bundle_file_map:
+        log_access("abha_timeline", norm_abha, True)
+        bf_name = bundle_file_map[norm_abha]
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent
+        bundle_p = base_dir / "frontend" / "src" / "data" / "patients" / bf_name
+        if bundle_p.exists():
+            try:
+                bundle_data = json.loads(bundle_p.read_text(encoding="utf-8"))
+                entries = list(bundle_data.get("entry", []))
+                if norm_abha in _OFFLINE_PRESCRIPTION_STORE:
+                    for rx_res in _OFFLINE_PRESCRIPTION_STORE[norm_abha]:
+                        fid = rx_res.get("id", "rx-res")
+                        entries.insert(0, {"fullUrl": f"urn:uuid:{fid}", "resource": rx_res})
+                bundle_data["entry"] = entries
+                bundle_data["total"] = len(entries)
+                return bundle_data
+            except Exception:
+                pass
+
     if norm_abha == "91-1234-5678-9012":
         log_access("abha_timeline", norm_abha, True)
         fallback_entries = [

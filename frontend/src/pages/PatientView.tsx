@@ -11,6 +11,7 @@ import {
   Calendar, Activity, Pill, Shield, Camera, Share2, Copy, Check, QrCode, Download
 } from 'lucide-react';
 import { downloadFhirBundlePdf } from '@/lib/fhir/downloadFhirBundlePdf';
+import { DownloadReportDialog } from '@/components/DownloadReportDialog';
 
 // ─────────────────────────────────────────────
 // Share to Doctor panel
@@ -121,7 +122,7 @@ function ShareToDoctor({
 // Main PatientView
 // ─────────────────────────────────────────────
 export const PatientView: React.FC = () => {
-  const { abhaId } = useAuth();
+  const { abhaId, userName } = useAuth();
   const {
     bundle,
     patient,
@@ -129,9 +130,11 @@ export const PatientView: React.FC = () => {
     setSelectedResource,
     setPatientId,
     availablePatients,
+    currentPatientId,
   } = usePatientData();
 
   const [isScanOpen, setIsScanOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!bundle) return;
@@ -149,11 +152,11 @@ export const PatientView: React.FC = () => {
       const matched = availablePatients.find(
         (p) => p.abha.replace(/\D/g, '') === cleanSessionAbha
       );
-      if (matched) {
+      if (matched && matched.id !== currentPatientId) {
         setPatientId(matched.id);
       }
     }
-  }, [abhaId, availablePatients, setPatientId]);
+  }, [abhaId, availablePatients, currentPatientId, setPatientId]);
 
   // Dynamic statistics from bundle
   const stats = useMemo(() => {
@@ -184,7 +187,7 @@ export const PatientView: React.FC = () => {
     return null;
   }, [bundle]);
 
-  const patientName = patient?.name?.[0]?.text || 'Patient';
+  const patientName = patient?.name?.[0]?.text || userName || 'Patient';
 
   return (
     <div className="flex flex-col gap-6 pb-16 animate-fade-up">
@@ -206,10 +209,11 @@ export const PatientView: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleDownloadPdf}
+                onClick={() => setIsDownloadOpen(true)}
                 disabled={!bundle}
                 className="inline-flex items-center gap-2 rounded-full bg-white/50 dark:bg-black/20 border border-white/40 dark:border-white/10 px-4 py-2 text-xs font-semibold text-ink hover:bg-white/80 dark:hover:bg-black/40 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Download Clinical History PDF"
+                title="Select reports to download as PDF"
+                aria-label="Select reports to download as PDF"
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Download PDF</span>
@@ -284,9 +288,21 @@ export const PatientView: React.FC = () => {
 
       {/* Timeline */}
       <section>
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-moss-600" />
           <h2 className="font-serif text-xl text-ink">Your timeline</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDownloadOpen(true)}
+            disabled={!bundle}
+            className="inline-flex items-center gap-1.5 text-xs text-moss-700 dark:text-moss-400 hover:text-moss-800 dark:hover:text-moss-300 font-medium cursor-pointer transition-colors"
+            title="Choose specific reports to download"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Select &amp; Export PDF</span>
+          </button>
         </div>
         <Timeline />
       </section>
@@ -304,6 +320,14 @@ export const PatientView: React.FC = () => {
       <ScanDialog
         open={isScanOpen}
         onOpenChange={setIsScanOpen}
+      />
+
+      {/* Download Reports Customizer Dialog */}
+      <DownloadReportDialog
+        open={isDownloadOpen}
+        onOpenChange={setIsDownloadOpen}
+        bundle={bundle}
+        patientName={patientName}
       />
     </div>
   );

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { AuthContext } from '@/context/AuthContext';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { FhirPatient } from '@/lib/fhir/types';
 import { Badge } from '@/components/ui/badge';
@@ -9,29 +10,43 @@ interface PatientCardProps {
 }
 
 export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = false }) => {
-  const patientName = patient?.name?.[0]?.text || 'Ramesh Kumar';
+  const auth = useContext(AuthContext);
+  const patientName = patient?.name?.[0]?.text || auth?.userName || 'Patient';
   const abhaId =
     patient?.identifier?.find((i) => i.system === 'https://healthid.ndhm.gov.in')?.value ||
+    auth?.abhaId ||
     '91-1234-5678-9012';
 
   // Calculate initials
-  const initials = patientName
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'RK';
+  const initials =
+    patientName
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'PT';
 
   // Age / gender
-  const gender = patient?.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'Male';
-  let age: number | string = 52;
+  let gender: string | undefined = undefined;
+  if (patient?.gender) {
+    gender = patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1);
+  }
+
+  let age: number | undefined = undefined;
   if (patient?.birthDate) {
     const birthYear = new Date(patient.birthDate).getFullYear();
     if (!isNaN(birthYear)) {
       age = new Date().getFullYear() - birthYear;
     }
   }
+
+  const demographicsText = [
+    age !== undefined ? `${age} yrs` : null,
+    gender || null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   if (compact) {
     return (
@@ -50,8 +65,8 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
             </Badge>
           </div>
           <div className="flex items-center gap-2 text-xs text-ink-soft">
-            <span>{age} · {gender}</span>
-            <span>•</span>
+            {demographicsText && <span>{demographicsText}</span>}
+            {demographicsText && <span>•</span>}
             <span className="font-mono text-[11px] text-ink-soft tracking-wider">{abhaId}</span>
           </div>
         </div>
@@ -77,10 +92,18 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
               </Badge>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-ink-soft">
-              <span>{age} years</span>
-              <span>•</span>
-              <span>{gender}</span>
-              <span>•</span>
+              {age !== undefined && (
+                <>
+                  <span>{age} years</span>
+                  <span>•</span>
+                </>
+              )}
+              {gender && (
+                <>
+                  <span>{gender}</span>
+                  <span>•</span>
+                </>
+              )}
               <span className="font-mono tracking-wider font-medium text-ink bg-paper-2 px-2 py-0.5 rounded-full border border-hairline text-xs">
                 ABHA: {abhaId}
               </span>
@@ -88,7 +111,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-moss-600 bg-moss-100/60 px-3 py-1.5 rounded-full border border-moss-500/20">
+        <div className="hidden sm:flex items-center gap-1.5 text-moss-600 bg-moss-100/60 px-3 py-1.5 rounded-full border border-moss-500/20">
           <ShieldCheck className="h-4 w-4" />
           <span className="font-medium">ABDM / NRCeS Compliant</span>
         </div>
