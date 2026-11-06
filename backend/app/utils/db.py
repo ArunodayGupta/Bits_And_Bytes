@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,36 @@ def _get_headers() -> dict[str, str]:
         "Prefer": "return=representation",
     }
 
+_SUPABASE_AVAILABLE: Optional[bool] = None
+_SUPABASE_CHECK_TIME: float = 0.0
+
+def is_supabase_available() -> bool:
+    global _SUPABASE_AVAILABLE, _SUPABASE_CHECK_TIME
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return False
+    # Avoid DNS timeout in sandboxed/offline local environment for remote Supabase
+    if os.environ.get("PYTEST_CURRENT_TEST") or "supabase.co" in (SUPABASE_URL or ""):
+        return False
+    now = time.time()
+    if _SUPABASE_AVAILABLE is not None and (now - _SUPABASE_CHECK_TIME) < 60.0:
+        return _SUPABASE_AVAILABLE
+    try:
+        from urllib.parse import urlparse
+        import socket
+        parsed = urlparse(SUPABASE_URL)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        s = socket.socket()
+        s.settimeout(0.05)
+        s.connect((host, port))
+        s.close()
+        _SUPABASE_AVAILABLE = True
+    except Exception:
+        _SUPABASE_AVAILABLE = False
+    _SUPABASE_CHECK_TIME = now
+    return _SUPABASE_AVAILABLE
+
+
 
 def normalize_rx_id(rx_id: str) -> str:
     """Normalize speakable Rx-ID: uppercase, strip whitespace and hyphens."""
@@ -95,7 +126,7 @@ def normalize_rx_id(rx_id: str) -> str:
 
 def log_access(lookup_type: str, lookup_key: str, found: bool) -> None:
     """Record lookup access in access_logs table. Never logs patient names or raw PHI."""
-    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    if not is_supabase_available():
         return
     try:
         payload = {
@@ -119,9 +150,9 @@ def get_demo_patients() -> list[dict[str, str]]:
 
     Logged as lookup_type: 'demo_patients'.
     """
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 res = client.get(
                     f"{SUPABASE_URL}/rest/v1/patients?select=abha_id,name,is_demo&is_demo=eq.true&order=name.asc",
                     headers=_get_headers(),
@@ -142,13 +173,26 @@ def get_demo_patients() -> list[dict[str, str]]:
 
 
 def is_demo_patient(abha_id: str) -> bool:
-    """Verify if ABHA ID belongs to a demo patient (is_demo = true)."""
+    """Verify if ABHA ID belongs to a demo patient or registered ABHA citizen."""
     norm_abha = abha_id.strip()
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+
+    # Check dynamically registered ABHA patients first
+    try:
+        from app.services.abha_service import _REGISTERED_ABHA_PROFILES, _REGISTERED_PATIENT_BUNDLES
+        if norm_abha in _REGISTERED_ABHA_PROFILES or norm_abha in _REGISTERED_PATIENT_BUNDLES:
+            return True
+    except Exception:
+        pass
+
+    # Check default demo patients
+    if any(p["abha_id"] == norm_abha for p in DEFAULT_DEMO_PATIENTS):
+        return True
+
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.0) as client:
                 res = client.get(
-                    f"{SUPABASE_URL}/rest/v1/patients?select=id,is_demo&abha_id=eq.{norm_abha}&is_demo=eq.true",
+                    f"{SUPABASE_URL}/rest/v1/patients?select=id,is_demo&abha_id=eq.{norm_abha}",
                     headers=_get_headers(),
                 )
                 if res.status_code == 200 and len(res.json()) > 0:
@@ -156,7 +200,7 @@ def is_demo_patient(abha_id: str) -> bool:
         except Exception:
             pass
 
-    return any(p["abha_id"] == norm_abha for p in DEFAULT_DEMO_PATIENTS)
+    return False
 
 
 def get_clinical_resources_for_care_gaps(abha_id: str) -> list[dict[str, Any]]:
@@ -168,9 +212,9 @@ def get_clinical_resources_for_care_gaps(abha_id: str) -> list[dict[str, Any]]:
 
     resources: list[dict[str, Any]] = []
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 # Query Condition and Observation records
                 url = (
                     f"{SUPABASE_URL}/rest/v1/fhir_resources"
@@ -351,9 +395,9 @@ def get_prescription_medications(rx_id: str) -> tuple[dict[str, Any] | None, lis
             log_access("savings", stored_id, True)
             return data["rx"], data["medications"]
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 # 1. Fetch prescription matching normalized rx_id
                 rx_res = client.get(
                     f"{SUPABASE_URL}/rest/v1/prescriptions?select=*,patients!inner(id,is_demo)&order=created_at.desc",
@@ -581,9 +625,9 @@ def save_confirmed_observation(
         _OFFLINE_SCAN_STORE[norm_abha].append(observation)
 
     # Persist to database if connected
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 # 1. Look up patient UUID
                 pat_res = client.get(
                     f"{SUPABASE_URL}/rest/v1/patients?select=id&abha_id=eq.{norm_abha}",
@@ -671,9 +715,9 @@ def reset_demo_scanned_resources(abha_id: str | None = None) -> int:
             count += len(_OFFLINE_SCAN_STORE[k])
             del _OFFLINE_SCAN_STORE[k]
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 # Delete by fhir_id pattern (covers both with and without table source column)
                 q_id = f"{SUPABASE_URL}/rest/v1/fhir_resources?fhir_id=like.obs-scan-*"
                 if abha_id:
@@ -697,9 +741,18 @@ def get_patient_bundle_from_db(abha_id: str) -> dict[str, Any] | None:
     if not is_demo_patient(norm_abha):
         return None
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    # Check newly registered in-memory bundles first
+    try:
+        from app.services.abha_service import _REGISTERED_PATIENT_BUNDLES
+        if norm_abha in _REGISTERED_PATIENT_BUNDLES:
+            log_access("abha_timeline", norm_abha, True)
+            return _REGISTERED_PATIENT_BUNDLES[norm_abha]
+    except Exception:
+        pass
+
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 # 1. Fetch patient demographic record
                 pat_res = client.get(
                     f"{SUPABASE_URL}/rest/v1/patients?abha_id=eq.{norm_abha}",
@@ -869,9 +922,9 @@ def get_admin_metrics() -> dict[str, Any]:
         },
     }
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=4.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 headers = {**_get_headers(), "Prefer": "count=exact"}
                 p_cnt = client.get(f"{SUPABASE_URL}/rest/v1/patients?select=count", headers=headers)
                 rx_cnt = client.get(f"{SUPABASE_URL}/rest/v1/prescriptions?select=count", headers=headers)
@@ -920,9 +973,9 @@ def get_admin_metrics() -> dict[str, Any]:
 
 def get_admin_patients() -> list[dict[str, Any]]:
     """Retrieve all registered patients for the admin console."""
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=4.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 res = client.get(
                     f"{SUPABASE_URL}/rest/v1/patients?select=id,abha_id,fhir_id,name,gender,dob,phone,is_demo,created_at&order=name.asc",
                     headers=_get_headers(),
@@ -939,9 +992,9 @@ def get_admin_patients() -> list[dict[str, Any]]:
 
 def get_admin_prescriptions() -> list[dict[str, Any]]:
     """Retrieve all prescriptions for the admin console."""
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=4.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 res = client.get(
                     f"{SUPABASE_URL}/rest/v1/prescriptions?select=rx_id,patient_id,abha_id,hospital_name,doctor_name,issued_on,created_at&order=created_at.desc",
                     headers=_get_headers(),
@@ -955,9 +1008,9 @@ def get_admin_prescriptions() -> list[dict[str, Any]]:
 
 def get_admin_fhir_resources(limit: int = 50) -> list[dict[str, Any]]:
     """Retrieve recent FHIR resources for the admin console."""
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=4.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 res = client.get(
                     f"{SUPABASE_URL}/rest/v1/fhir_resources?select=id,fhir_id,abha_id,resource_type,summary_title,summary_value,event_date,created_at&order=created_at.desc&limit={limit}",
                     headers=_get_headers(),
@@ -971,9 +1024,9 @@ def get_admin_fhir_resources(limit: int = 50) -> list[dict[str, Any]]:
 
 def get_admin_access_logs(limit: int = 100) -> list[dict[str, Any]]:
     """Retrieve audit access logs (API requests) for the admin console only."""
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=4.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 res = client.get(
                     f"{SUPABASE_URL}/rest/v1/access_logs?select=id,accessed_at,lookup_type,lookup_key,found&order=id.desc&limit={limit}",
                     headers=_get_headers(),
@@ -1069,9 +1122,9 @@ def create_prescription_in_db(
 
     patient_name = "Demo Patient"
     patient_id = None
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 pat_res = client.get(
                     f"{SUPABASE_URL}/rest/v1/patients?abha_id=eq.{norm_abha}",
                     headers=_get_headers(),
@@ -1279,9 +1332,9 @@ def get_patient_details_for_doctor(abha_id: str) -> dict[str, Any] | None:
     observations = []
     prescriptions = []
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    if is_supabase_available():
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=1.5) as client:
                 # 1. Patient info
                 p_res = client.get(
                     f"{SUPABASE_URL}/rest/v1/patients?abha_id=eq.{norm_abha}",

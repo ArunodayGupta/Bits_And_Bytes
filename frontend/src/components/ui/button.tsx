@@ -4,22 +4,22 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
         default:
-          'bg-moss-600 text-paper hover:bg-moss-500 shadow-sm',
+        'bg-moss-600 text-white dark:text-[#141915] hover:bg-moss-500 shadow-sm font-semibold',
         outline:
-          'border border-hairline bg-transparent hover:bg-paper-2 hover:border-moss-500 text-ink',
+        'border border-hairline/80 bg-card/60 backdrop-blur-sm hover:bg-paper-2 hover:border-moss-500/50 text-ink shadow-xs',
         secondary:
-          'bg-paper-2 text-ink hover:bg-moss-100/50 border border-hairline',
+        'bg-paper-2 text-ink hover:bg-moss-100/40 border border-hairline shadow-xs',
         ghost:
           'hover:bg-paper-2 text-ink',
         link:
-          'text-teal-700 underline-offset-4 hover:underline',
+        'text-teal-700 underline-offset-4 hover:underline dark:text-teal-400',
         glass:
-          'bg-white/10 backdrop-blur-md border border-white/20 text-ink hover:bg-white/20',
+        'bg-white/10 backdrop-blur-md border border-white/20 text-ink hover:bg-white/20 shadow-glass',
       },
       size: {
         default: 'h-10 px-5 py-2',
@@ -37,7 +37,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 

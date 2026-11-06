@@ -29,12 +29,16 @@ export const ThemeToggle = () => {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="theme-toggle inline-flex h-10 min-w-10 items-center justify-center gap-2 rounded-full border border-hairline bg-card px-3 text-xs font-semibold text-ink transition-all hover:-translate-y-0.5 shadow-sm"
+      className="theme-toggle inline-flex h-9 sm:h-10 min-w-9 sm:min-w-10 items-center justify-center gap-2 rounded-full border border-hairline/80 bg-card/80 hover:bg-paper-2 hover:border-moss-500/40 px-3 text-xs font-semibold text-ink transition-all hover:-translate-y-0.5 shadow-xs"
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
       title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
     >
-      {isDark ? <Sun className="h-4 w-4 text-gold-400" aria-hidden="true" /> : <Moon className="h-4 w-4 text-moss-600" aria-hidden="true" />}
-      <span className="hidden xl:inline">{isDark ? 'Light' : 'Dark'}</span>
+      {isDark ? (
+        <Sun className="h-4 w-4 text-gold-400 transition-transform hover:rotate-45 duration-200" aria-hidden="true" />
+      ) : (
+        <Moon className="h-4 w-4 text-moss-600 transition-transform hover:-rotate-12 duration-200" aria-hidden="true" />
+      )}
+      <span className="hidden xl:inline text-xs font-medium">{isDark ? 'Light' : 'Dark'}</span>
     </button>
   );
 };

@@ -470,7 +470,7 @@ export const DownloadReportDialog: React.FC<DownloadReportDialogProps> = ({
               size="sm"
               onClick={handleDownload}
               disabled={selectedCount === 0 || isDownloading}
-              className="bg-moss-600 hover:bg-moss-700 text-white text-xs gap-1.5 shadow-sm"
+              className="btn-primary-tech text-xs gap-1.5 shadow-sm"
             >
               {isDownloading ? (
                 <>

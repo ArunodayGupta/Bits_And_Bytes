@@ -13,13 +13,72 @@ export const FALLBACK_EVENT_NAME = 'healthsafe:live-fallback';
 
 /**
  * Returns the matching static bundle for an ABHA ID from the loaded profiles,
- * falling back to DEFAULT_PATIENT_PROFILE.
+ * falling back to an initial welcome bundle or DEFAULT_PATIENT_PROFILE.
  */
 export function getLocalBundleForAbha(abhaId?: string): FhirBundle {
   if (!abhaId) return DEFAULT_PATIENT_PROFILE.bundle;
   const clean = abhaId.replace(/\D/g, '');
   const matched = PATIENT_PROFILES.find((p) => p.abha.replace(/\D/g, '') === clean);
-  return (matched ? matched.bundle : DEFAULT_PATIENT_PROFILE.bundle) as FhirBundle;
+  if (matched) return matched.bundle as FhirBundle;
+
+  // For dynamically registered/signed-up ABHA patients, synthesize a welcome FHIR bundle
+  try {
+    if (typeof window !== 'undefined') {
+      const storedName = sessionStorage.getItem('healthsafe_auth_name') || 'Registered Citizen';
+      return {
+        resourceType: 'Bundle',
+        type: 'collection',
+        entry: [
+          {
+            fullUrl: `urn:uuid:patient-${clean}`,
+            resource: {
+              resourceType: 'Patient',
+              id: `patient-${clean}`,
+              identifier: [
+                { system: 'https://healthid.ndhm.gov.in', value: abhaId },
+              ],
+              name: [{ text: storedName }],
+              gender: 'unknown',
+            },
+          },
+          {
+            fullUrl: `urn:uuid:enc-welcome-${clean}`,
+            resource: {
+              resourceType: 'Encounter',
+              id: `enc-welcome-${clean}`,
+              status: 'finished',
+              period: { start: new Date().toISOString() },
+              serviceProvider: { display: 'Ayushman Bharat Digital Mission (ABDM)' },
+            } as any,
+          },
+          {
+            fullUrl: `urn:uuid:obs-vitals-${clean}`,
+            resource: {
+              resourceType: 'Observation',
+              id: `obs-vitals-${clean}`,
+              status: 'final',
+              category: [
+                {
+                  coding: [
+                    {
+                      system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                      code: 'vital-signs',
+                    },
+                  ],
+                },
+              ],
+              code: { text: 'Baseline Vitals Recorded' },
+              effectiveDateTime: new Date().toISOString(),
+            } as any,
+          },
+        ],
+      };
+    }
+  } catch {
+    // ignore
+  }
+
+  return DEFAULT_PATIENT_PROFILE.bundle as FhirBundle;
 }
 
 /**
@@ -85,12 +144,14 @@ export async function fetchPatientData(
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent(FALLBACK_EVENT_NAME, {
-          detail: { message: 'Database unreachable, showing offline bundle.' },
+          detail: {
+            reason: error instanceof Error ? error.message : 'Unknown network failure',
+            timestamp: new Date().toISOString(),
+          },
         })
       );
     }
 
-    // Safely return offline bundle matching the requested patient
     return JSON.parse(JSON.stringify(localBundle)) as FhirBundle;
   }
 }

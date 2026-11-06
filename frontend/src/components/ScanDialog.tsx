@@ -901,7 +901,7 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
                   type="button"
                   onClick={handleUploadAndAnalyze}
                   disabled={isLoading}
-                  className="bg-moss-600 text-white hover:bg-moss-700"
+                  className="btn-primary-tech"
                 >
                   {isLoading ? (
                     <>
@@ -928,7 +928,7 @@ export const ScanDialog: React.FC<ScanDialogProps> = ({
                 type="button"
                 onClick={handleConfirmAndSave}
                 disabled={!canConfirm || isLoading}
-                className="bg-moss-600 text-white hover:bg-moss-700"
+                className="btn-primary-tech"
               >
                 {isLoading ? (
                   <>

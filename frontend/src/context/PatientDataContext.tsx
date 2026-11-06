@@ -5,7 +5,7 @@ import type {
   FhirResource,
   TimelineEventType,
 } from '@/lib/fhir/types';
-import { fetchPatientData } from '@/lib/fhir/fetchPatientData';
+import { fetchPatientData, getLocalBundleForAbha } from '@/lib/fhir/fetchPatientData';
 import { buildTimeline } from '@/lib/fhir/buildTimeline';
 import { injectRxIdsIntoBundle } from '@/lib/rxId';
 import { PATIENT_PROFILES, DEFAULT_PATIENT_PROFILE, type PatientProfile } from '@/data/patients';
@@ -24,10 +24,38 @@ function getInitialProfile(): PatientProfile {
   try {
     if (typeof window !== 'undefined') {
       const storedAbha = sessionStorage.getItem('healthsafe_auth_abha');
+      const storedName = sessionStorage.getItem('healthsafe_auth_name') || 'Registered Citizen';
       if (storedAbha) {
         const clean = storedAbha.replace(/\D/g, '');
         const matched = PATIENT_PROFILES.find((p) => p.abha.replace(/\D/g, '') === clean);
         if (matched) return matched;
+
+        // Check stored custom profiles
+        const storedCustom = sessionStorage.getItem('healthsafe_custom_patient_profiles');
+        if (storedCustom) {
+          try {
+            const list: PatientProfile[] = JSON.parse(storedCustom);
+            const found = list.find((p) => p.abha.replace(/\D/g, '') === clean);
+            if (found) return found;
+          } catch {
+            // ignore
+          }
+        }
+
+        // Return synthesized profile for newly registered ABHA
+        return {
+          id: `patient-${clean}`,
+          name: storedName,
+          abha: storedAbha,
+          age: 32,
+          gender: 'male',
+          primaryConditions: ['ABDM Digital Health Record'],
+          facility: 'National Health Authority (ABDM)',
+          doctor: 'ABDM Network Provider',
+          sampleRxId: `ABDM-${clean.slice(-4)}`,
+          careGapStatus: 'Controlled',
+          bundle: getLocalBundleForAbha(storedAbha),
+        };
       }
     }
   } catch {
@@ -36,15 +64,27 @@ function getInitialProfile(): PatientProfile {
   return DEFAULT_PATIENT_PROFILE;
 }
 
-const initialRaw = DEFAULT_PATIENT_PROFILE.bundle;
-const initialPrepared = injectRxIdsIntoBundle(initialRaw);
-const initialPatient =
-  (initialPrepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient) ||
-  null;
-
 export function PatientDataProvider({ children }: { children: React.ReactNode }) {
   const auth = useContext(AuthContext);
   const authAbha = auth?.abhaId;
+  const authName = auth?.userName;
+
+  const [customProfiles, setCustomProfiles] = useState<PatientProfile[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = sessionStorage.getItem('healthsafe_custom_patient_profiles');
+        return stored ? JSON.parse(stored) : [];
+      }
+    } catch {
+      // fallback
+    }
+    return [];
+  });
+
+  const allProfiles = useMemo(
+    () => [...PATIENT_PROFILES, ...customProfiles],
+    [customProfiles]
+  );
 
   const [currentPatientId, setCurrentPatientId] = useState<string>(() => getInitialProfile().id);
   const [source, setSourceState] = useState<DataSourceType>('database');
@@ -87,7 +127,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     }
     let didFallback = false;
     const targetPatientId = patientId ?? currentPatientId;
-    const profile = PATIENT_PROFILES.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
+    const profile = allProfiles.find((p) => p.id === targetPatientId) || DEFAULT_PATIENT_PROFILE;
 
     try {
       const fetchedBundle = await fetchPatientData(requestedSource || 'database', () => {
@@ -182,7 +222,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       hasLoadedOnce.current = true;
       setIsLoading(false);
     }
-  }, [currentPatientId]);
+  }, [allProfiles, currentPatientId, sessionScannedObservations]);
 
   // Load from database on initial mount
   React.useEffect(() => {
@@ -197,7 +237,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     };
     window.addEventListener('healthsafe_rx_created', handleRxCreated);
     return () => window.removeEventListener('healthsafe_rx_created', handleRxCreated);
-  }, [loadData]);
+  }, [loadData, currentPatientId]);
 
   // Auto-refresh periodically without flashing or emptying the UI
   React.useEffect(() => {
@@ -223,7 +263,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
   const setPatientId = useCallback(
     (patientId: string) => {
       setCurrentPatientId(patientId);
-      const profile = PATIENT_PROFILES.find((p) => p.id === patientId) || DEFAULT_PATIENT_PROFILE;
+      const profile = allProfiles.find((p) => p.id === patientId) || DEFAULT_PATIENT_PROFILE;
       const prepared = injectRxIdsIntoBundle(profile.bundle);
       setRawBundle(profile.bundle);
       setBundle(prepared.bundle);
@@ -232,19 +272,58 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
       setSelectedResource(null);
       void loadData(source, patientId);
     },
-    [source, loadData]
+    [allProfiles, source, loadData]
   );
 
   // Synchronize active patient with AuthContext whenever logged-in ABHA changes
   React.useEffect(() => {
     if (authAbha) {
       const clean = authAbha.replace(/\D/g, '');
-      const matched = PATIENT_PROFILES.find((p) => p.abha.replace(/\D/g, '') === clean);
-      if (matched && matched.id !== currentPatientId) {
-        setPatientId(matched.id);
+      const existing = allProfiles.find((p) => p.abha.replace(/\D/g, '') === clean);
+      if (existing) {
+        if (existing.id !== currentPatientId) {
+          setPatientId(existing.id);
+        }
+      } else {
+        // Create dynamic profile for newly registered / external ABHA
+        const dynamicId = `patient-${clean}`;
+        const displayName = authName || (typeof window !== 'undefined' ? sessionStorage.getItem('healthsafe_auth_name') : null) || 'Registered Citizen';
+        const newProfile: PatientProfile = {
+          id: dynamicId,
+          name: displayName,
+          abha: authAbha,
+          age: 32,
+          gender: 'male',
+          primaryConditions: ['ABDM Digital Health Record'],
+          facility: 'National Health Authority (ABDM)',
+          doctor: 'ABDM Network Provider',
+          sampleRxId: `ABDM-${clean.slice(-4)}`,
+          careGapStatus: 'Controlled',
+          bundle: getLocalBundleForAbha(authAbha),
+        };
+
+        setCustomProfiles((prev) => {
+          const filtered = prev.filter((p) => p.abha.replace(/\D/g, '') !== clean);
+          const updated = [...filtered, newProfile];
+          try {
+            sessionStorage.setItem('healthsafe_custom_patient_profiles', JSON.stringify(updated));
+          } catch {
+            // ignore
+          }
+          return updated;
+        });
+
+        const prepared = injectRxIdsIntoBundle(newProfile.bundle);
+        setRawBundle(newProfile.bundle);
+        setBundle(prepared.bundle);
+        const pResource = prepared.bundle.entry?.find((e) => e.resource.resourceType === 'Patient')?.resource as FhirPatient;
+        setPatient(pResource || null);
+        setSelectedResource(null);
+        setCurrentPatientId(dynamicId);
+        void loadData(source, dynamicId);
       }
     }
-  }, [authAbha, currentPatientId, setPatientId]);
+  }, [authAbha, authName, allProfiles, currentPatientId, setPatientId, source, loadData]);
 
   const reload = useCallback(async () => {
     await loadData(source);
@@ -350,7 +429,7 @@ export function PatientDataProvider({ children }: { children: React.ReactNode })
     addObservationToBundle,
     currentPatientId,
     setPatientId,
-    availablePatients: PATIENT_PROFILES,
+    availablePatients: allProfiles,
   };
 
   return (
@@ -367,4 +446,3 @@ export function usePatientData(): PatientDataContextValue {
   }
   return context;
 }
-

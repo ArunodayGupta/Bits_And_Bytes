@@ -71,11 +71,10 @@ function ShareToDoctor({
           <button
             type="button"
             onClick={handleCopyRx}
-            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all cursor-pointer ${
-              copiedRx
-                ? 'bg-moss-200 dark:bg-moss-800 text-moss-800 dark:text-moss-200 border border-moss-400'
-                : 'bg-moss-600 text-white hover:bg-moss-700 shadow-xs'
-            }`}
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all cursor-pointer ${copiedRx
+              ? 'bg-moss-200 dark:bg-moss-800 text-moss-800 dark:text-moss-200 border border-moss-400'
+              : 'btn-primary-tech shadow-xs'
+              }`}
             aria-label="Copy prescription share code"
           >
             {copiedRx ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -97,11 +96,10 @@ function ShareToDoctor({
           <button
             type="button"
             onClick={handleCopyAbha}
-            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all cursor-pointer ${
-              copiedAbha
-                ? 'bg-ink/20 text-ink border border-ink/30'
-                : 'border border-hairline bg-card dark:bg-stone-800/60 text-ink dark:text-stone-200 hover:bg-paper-2 dark:hover:bg-stone-800'
-            }`}
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold transition-all cursor-pointer ${copiedAbha
+              ? 'bg-ink/20 text-ink border border-ink/30'
+              : 'border border-hairline bg-card dark:bg-stone-800/60 text-ink dark:text-stone-200 hover:bg-paper-2 dark:hover:bg-stone-800'
+              }`}
             aria-label="Copy ABHA ID"
           >
             {copiedAbha ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -221,7 +219,7 @@ export const PatientView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsScanOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-moss-600 px-4 py-2 text-xs font-semibold text-paper hover:bg-moss-500 transition-all shadow-sm"
+                className="inline-flex items-center gap-2 rounded-full btn-primary-tech px-4 py-2 text-xs font-semibold shadow-sm"
                 aria-label="Scan and upload a lab report"
               >
                 <Camera className="h-4 w-4" />
@@ -290,8 +288,8 @@ export const PatientView: React.FC = () => {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-moss-600" />
-          <h2 className="font-serif text-xl text-ink">Your timeline</h2>
+            <Calendar className="h-5 w-5 text-moss-600" />
+            <h2 className="font-serif text-xl text-ink">Your timeline</h2>
           </div>
           <button
             type="button"

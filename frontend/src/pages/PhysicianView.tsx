@@ -350,7 +350,7 @@ export const PhysicianView: React.FC = () => {
           <Button
             type="submit"
             disabled={isLoading || !rxInput.trim()}
-            className="rounded-full bg-ink text-paper hover:bg-moss-600 h-11 px-6 font-semibold text-xs"
+            className="rounded-full bg-ink text-paper dark:text-[#141915] hover:bg-moss-600 h-11 px-6 font-semibold text-xs"
           >
             {isLoading ? 'Looking up...' : 'Find Alternatives'}
           </Button>

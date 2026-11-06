@@ -372,7 +372,7 @@ export const DoctorView: React.FC = () => {
 
                 <Button
                   onClick={() => setCreatedRx(null)}
-                  className="rounded-full bg-ink text-paper hover:bg-moss-600 px-5 text-xs font-semibold"
+                  className="rounded-full bg-ink text-paper dark:text-[#141915] hover:bg-moss-600 px-5 text-xs font-semibold"
                 >
                   Create Another Prescription
                 </Button>
@@ -609,7 +609,7 @@ export const DoctorView: React.FC = () => {
                 type="button"
                 onClick={() => handleLookupPatient(lookupAbha)}
                 disabled={isLookingUp || !lookupAbha.trim()}
-                className="rounded-full bg-ink text-paper hover:bg-moss-600 h-11 px-6 font-semibold text-xs shrink-0"
+                className="rounded-full bg-ink text-paper dark:text-[#141915] hover:bg-moss-600 h-11 px-6 font-semibold text-xs shrink-0"
               >
                 {isLookingUp ? 'Searching...' : 'Search Patient / Rx'}
               </Button>

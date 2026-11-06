@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.routers import admin, demo, patients, prescriptions, scan
+from app.routers import abha, admin, demo, patients, prescriptions, scan
 from app.services.savings_service import load_and_validate_catalog
 
 
@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Unified Health Wallet API",
-    description="FastAPI Backend for Phase 2: Care-Gaps v2, Generic Savings Engine, and Scan-to-FHIR",
+    description="FastAPI Backend for Phase 2: Care-Gaps v2, Generic Savings Engine, Scan-to-FHIR, and ABDM ABHA Auth/Signup",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -82,9 +82,8 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-
-
 # Include Routers
+app.include_router(abha.router)
 app.include_router(admin.router)
 app.include_router(demo.router)
 app.include_router(patients.router)
